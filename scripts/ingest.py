@@ -259,12 +259,20 @@ def main(
             entries.append({"id": f"{doc_key}::text::{i}", "text": c.text, "metadata": entry_meta})
         n_text_chunks = len(chunks)
 
-        (doc_dir / "fulltext.md").write_text(doc.export_to_markdown() + "\n")
-
         figures_dir = doc_dir / "figures"
         figs = figures_lib.extract_figures(
             doc, doc_key, figures_dir, source_path=source_path, describe_figures=describe_figures
         )
+
+        markdown = doc.export_to_markdown() + "\n"
+        if figs:
+            markdown += "\n## Figures\n\n"
+            for fig in figs:
+                rel_path = fig.path.relative_to(doc_dir).as_posix()
+                caption = fig.caption or f"Figure {fig.index}"
+                markdown += f"![Figure {fig.index}]({rel_path})\n\n{caption}\n\n"
+        (doc_dir / "fulltext.md").write_text(markdown)
+
         for fig in figs:
             entry_meta = dict(base_meta)
             entry_meta["type"] = "figure"
