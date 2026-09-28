@@ -43,6 +43,7 @@ def pmid_to_pmcid(pmid: str) -> Optional[str]:
         ID_CONVERTER_URL,
         params=_ncbi_params({"tool": "paper-rag", "email": "paper-rag@localhost", "ids": pmid, "format": "json"}),
         timeout=30.0,
+        follow_redirects=True,
     )
     resp.raise_for_status()
     data = resp.json()
@@ -69,11 +70,20 @@ def _unwrap_jats_articleset(content: bytes) -> bytes:
     "ARTICLE SET" DOCTYPE, not a JATS one. docling's format sniffer only recognizes
     JATS XML when the DOCTYPE names JATS-journalpublishing/-archive, so the wrapped
     document is otherwise left undetected and conversion fails.
+
+    Also strips any ``<processing-meta>`` element (NLM archiving-tagset metadata,
+    not article content). Some PMC exports carry a `table-model="xhtml"` attribute
+    on it near the top of the document; docling's mime sniffer does a naive
+    substring search for "xhtml" in the first 1000 characters, so that attribute
+    alone gets the whole document mis-sniffed as XHTML -- which excludes JATS from
+    the candidate formats entirely and skips the DOCTYPE check that would
+    otherwise have identified it correctly.
     """
     match = re.search(rb"<article\b.*</article>", content, re.DOTALL)
     if not match:
         return content
-    return b'<?xml version="1.0" encoding="UTF-8"?>' + _JATS_DOCTYPE + match.group(0)
+    article = re.sub(rb"<processing-meta\b.*?(?:/>|</processing-meta>)", b"", match.group(0), flags=re.DOTALL)
+    return b'<?xml version="1.0" encoding="UTF-8"?>' + _JATS_DOCTYPE + article
 
 
 def fetch_jats(pmcid: str, dest_dir: Path) -> Path:
@@ -84,6 +94,7 @@ def fetch_jats(pmcid: str, dest_dir: Path) -> Path:
         EFETCH_URL,
         params=_ncbi_params({"db": "pmc", "id": numeric_id, "rettype": "full", "retmode": "xml"}),
         timeout=60.0,
+        follow_redirects=True,
     )
     resp.raise_for_status()
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -95,7 +106,7 @@ def fetch_jats(pmcid: str, dest_dir: Path) -> Path:
 def fetch_oa_pdf(pmcid: str, dest_dir: Path) -> Optional[Path]:
     """Fetch a PDF via the PMC OA service, if the article is in the OA subset."""
     _rate_limit()
-    resp = httpx.get(OA_SERVICE_URL, params=_ncbi_params({"id": pmcid}), timeout=30.0)
+    resp = httpx.get(OA_SERVICE_URL, params=_ncbi_params({"id": pmcid}), timeout=30.0, follow_redirects=True)
     resp.raise_for_status()
     root = ET.fromstring(resp.content)
     for link in root.iter("link"):
@@ -156,6 +167,7 @@ def fetch_citation_metadata(pmid: str) -> dict:
         EFETCH_URL,
         params=_ncbi_params({"db": "pubmed", "id": pmid, "rettype": "xml", "retmode": "xml"}),
         timeout=30.0,
+        follow_redirects=True,
     )
     resp.raise_for_status()
     root = ET.fromstring(resp.content)
