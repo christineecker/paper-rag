@@ -1,4 +1,7 @@
-"""PDF-only figure extraction: saves PictureItem images to papers/<doc_key>/figures/fig_N.png."""
+"""Figure extraction: saves PictureItem images to papers/<doc_key>/figures/fig_N.png.
+Works for any source docling embedded images in (PDF, or JATS XML with local figure
+files fetched alongside it -- see convert.py/fetch.py); the PDF-text caption scan
+below only kicks in for PDF sources, since JATS captions come straight from the XML."""
 from __future__ import annotations
 
 import json
@@ -137,7 +140,7 @@ def extract_figures(
     source_path: Optional[Path] = None,
     describe_figures: bool = False,
 ) -> list[Figure]:
-    """Extract picture items with captions from a docling document (PDF sources only).
+    """Extract picture items with captions from a docling document.
 
     `source_path` (the original PDF, when available) is used to backfill captions
     docling's own parse missed or mislinked -- see `_build_caption_list`.

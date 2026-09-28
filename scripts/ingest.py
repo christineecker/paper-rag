@@ -108,10 +108,16 @@ def main(
 
         if pmcid:
             try:
-                source_path = fetch_lib.fetch_jats(pmcid, doc_dir)
-                has_fulltext = True
+                source_path = fetch_lib.fetch_pmc_package(pmcid, doc_dir)
+                has_fulltext = source_path is not None
             except Exception:
                 source_path = None
+            if source_path is None:
+                try:
+                    source_path = fetch_lib.fetch_jats(pmcid, doc_dir)
+                    has_fulltext = True
+                except Exception:
+                    source_path = None
             if source_path is None:
                 try:
                     source_path = fetch_lib.fetch_oa_pdf(pmcid, doc_dir)

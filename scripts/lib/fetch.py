@@ -12,7 +12,11 @@ from defusedxml import ElementTree as ET
 
 ID_CONVERTER_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-OA_SERVICE_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi"
+# The old oa.fcgi OA package/PDF service was retired by NCBI in Aug 2026; article
+# files (JATS XML, PDF, media) now live on the PMC Cloud Service (S3), unauthenticated.
+PMC_S3_BASE = "https://pmc-oa-opendata.s3.amazonaws.com"
+_S3_LIST_NS = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
+_IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif")
 
 _last_request_time = 0.0
 
@@ -103,18 +107,82 @@ def fetch_jats(pmcid: str, dest_dir: Path) -> Path:
     return dest_path
 
 
-def fetch_oa_pdf(pmcid: str, dest_dir: Path) -> Optional[Path]:
-    """Fetch a PDF via the PMC OA service, if the article is in the OA subset."""
-    _rate_limit()
-    resp = httpx.get(OA_SERVICE_URL, params=_ncbi_params({"id": pmcid}), timeout=30.0, follow_redirects=True)
+def _list_pmc_s3_keys(pmcid: str) -> list[str]:
+    """List every object key on the PMC Cloud Service (S3) under a PMCID's prefix,
+    across all versions. Empty if the article isn't in the OA subset there."""
+    numeric_id = pmcid[3:] if pmcid.upper().startswith("PMC") else pmcid
+    resp = httpx.get(
+        PMC_S3_BASE,
+        params={"list-type": "2", "prefix": f"PMC{numeric_id}."},
+        timeout=30.0,
+        follow_redirects=True,
+    )
     resp.raise_for_status()
     root = ET.fromstring(resp.content)
-    for link in root.iter("link"):
-        if link.get("format") == "pdf":
-            href = link.get("href")
-            if href:
-                return fetch_url(href, dest_dir, filename="source.pdf")
-    return None
+    return [el.text for el in root.findall(".//s3:Contents/s3:Key", _S3_LIST_NS) if el.text]
+
+
+def _latest_pmc_s3_version_prefix(keys: list[str]) -> Optional[str]:
+    """Highest-versioned ``PMCxxxxx.N`` key prefix present in a listing."""
+    versions = {k.split("/", 1)[0] for k in keys if "/" in k}
+    if not versions:
+        return None
+    return max(versions, key=lambda v: int(v.rsplit(".", 1)[1]))
+
+
+def fetch_pmc_package(pmcid: str, dest_dir: Path) -> Optional[Path]:
+    """Fetch full-text JATS XML plus its figure images from the PMC Cloud Service
+    (S3). Writes dest_dir/source.xml and the referenced raster images alongside it
+    (same filenames as their JATS xlink:href) so docling's JATS backend can resolve
+    and embed them -- tables come along for free since JATS table-wrap markup is
+    parsed directly from the XML, no image needed. Returns None if the PMCID has no
+    package there (not in the OA subset)."""
+    keys = _list_pmc_s3_keys(pmcid)
+    version_prefix = _latest_pmc_s3_version_prefix(keys)
+    if version_prefix is None:
+        return None
+    version_keys = [k for k in keys if k.startswith(version_prefix + "/")]
+    xml_key = next((k for k in version_keys if k.endswith(".xml")), None)
+    if xml_key is None:
+        return None
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    xml_resp = httpx.get(f"{PMC_S3_BASE}/{xml_key}", timeout=60.0, follow_redirects=True)
+    xml_resp.raise_for_status()
+    dest_path = dest_dir / "source.xml"
+    dest_path.write_bytes(xml_resp.content)
+
+    for key in version_keys:
+        if key == xml_key:
+            continue
+        filename = key.rsplit("/", 1)[-1]
+        if Path(filename).suffix.lower() not in _IMAGE_EXTS:
+            continue
+        media_resp = httpx.get(f"{PMC_S3_BASE}/{key}", timeout=60.0, follow_redirects=True)
+        media_resp.raise_for_status()
+        (dest_dir / filename).write_bytes(media_resp.content)
+
+    return dest_path
+
+
+def fetch_oa_pdf(pmcid: str, dest_dir: Path) -> Optional[Path]:
+    """Fetch the publisher PDF from the PMC Cloud Service (S3), if the article is
+    in the OA subset there."""
+    keys = _list_pmc_s3_keys(pmcid)
+    version_prefix = _latest_pmc_s3_version_prefix(keys)
+    if version_prefix is None:
+        return None
+    pdf_key = next(
+        (
+            k
+            for k in keys
+            if k.startswith(version_prefix + "/") and k.endswith(".pdf") and "MOESM" not in k
+        ),
+        None,
+    )
+    if pdf_key is None:
+        return None
+    return fetch_url(f"{PMC_S3_BASE}/{pdf_key}", dest_dir, filename="source.pdf")
 
 
 def fetch_url(url: str, dest_dir: Path, filename: Optional[str] = None) -> Path:

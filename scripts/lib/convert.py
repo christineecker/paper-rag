@@ -4,9 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from docling.backend.xml.jats_backend import Citation, JatsDocumentBackend
+from docling.datamodel.backend_options import JatsBackendOptions
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
-from docling.document_converter import DocumentConverter, PdfFormatOption
+from docling.document_converter import DocumentConverter, PdfFormatOption, XMLJatsFormatOption
 from docling_core.types.doc.document import DoclingDocument
 from lxml import etree
 
@@ -139,9 +140,15 @@ def convert_document(path: Path, ocr: bool = False) -> DoclingDocument:
         generate_picture_images=True,
         images_scale=2.0,
     )
+    # `source_uri` is required for the JATS backend to resolve figure images: docling
+    # hands the backend a BytesIO (not the original Path) internally, so without an
+    # explicit source_uri it has no base directory to resolve relative xlink:href
+    # paths against and silently emits pictures with no image data.
+    jats_options = JatsBackendOptions(fetch_images=True, enable_local_fetch=True, source_uri=path)
     converter = DocumentConverter(
         format_options={
             InputFormat.PDF: PdfFormatOption(pipeline_options=pdf_options),
+            InputFormat.XML_JATS: XMLJatsFormatOption(backend_options=jats_options),
         }
     )
     result = converter.convert(str(path))
