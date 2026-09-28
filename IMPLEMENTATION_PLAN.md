@@ -38,6 +38,9 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
 - `commands/use.md` — `/paper-rag:use <name>`
 - `commands/ingest.md` — `/paper-rag:ingest <pmid|url|path>`
 - `commands/ask.md` — `/paper-rag:ask <question>`
+- `commands/cite.md` — `/paper-rag:cite [doc_key|pmid ...] [--all]`
+- `commands/mine.md` — `/paper-rag:mine [--as first|last|any] [--year Y|Y-Y] [--journal J]`
+- `commands/whoami.md` — `/paper-rag:whoami <name>`
 
 ## Step 1b: `scripts/init.py` + `commands/init.md`
 - `/paper-rag:init <path> [--name NAME] [--use]` initializes a RAG home and registers it
@@ -59,7 +62,7 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
   - fallback: PMC OA service PDF link → `source.pdf`; if not OA, exit with "no open-access full text — provide local file"
   - `fetch_url(url) -> Path` for direct PDF/XML links (avoid scraping PMC HTML pages — bot protection)
   - Respect NCBI rate limits (≤3 req/s without API key; optional `NCBI_API_KEY` env)
-- Title/metadata: taken from JATS front matter or efetch `db=pubmed`; pubmed MCP optional for Claude-side lookup only
+- Metadata: `fetch_citation_metadata(pmid) -> dict` via efetch `db=pubmed` (`rettype=xml`) — pulls title, authors (list of `{"family": ..., "given": ...}`, order preserved — structured, not a joined string, so `authors[0]`/`authors[-1]` can answer "first/last author" queries), journal, year, volume, issue, pages, doi; falls back to parsing JATS front matter fields when no PMID (local file / non-PMC URL ingest). Saved as `papers/<doc_key>/metadata.json`, the source for chroma's `title` field, BibTeX generation (Step 6b), and author/year/journal filtering (Step 6c). pubmed MCP optional for Claude-side lookup only, not used by the script
 - `convert.py`: `convert_document(path: Path) -> DoclingDocument` via `DocumentConverter(format_options=...)`
   - Formats: `InputFormat.XML_JATS`, `InputFormat.PDF`, `InputFormat.HTML`
   - PDF: `PdfPipelineOptions(do_ocr=False, generate_picture_images=True, images_scale=2.0)`; `--ocr` flag enables OCR for scanned PDFs
@@ -68,6 +71,7 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
 - `chunk_document(doc, embedding_model) -> list[Chunk]` via `docling.chunking.HybridChunker`
 - Tokenizer + `max_tokens` derived from the same `embedding_model` as Step 4b (e.g. bge-small = 512) — prevents silent truncation at embed time
 - Per-chunk: text, heading path, page_no (PDF only), doc metadata (title, source filename)
+- **Section handling**: acknowledgements, funding, and conflict-of-interest sections are chunked and embedded like any other text — heading path (`"Acknowledgements"`, `"Funding"`) makes them retrievable for questions like "which papers acknowledge funder X". Only the **reference list / bibliography** is skipped before chunking (JATS: `<ref-list>` tag; PDF: heading-text match on "References"/"Bibliography") — pure citation-string noise with no prose value, and redundant with `cite.py`'s own metadata (Step 6b)
 
 ## Step 3b: `scripts/lib/figures.py` — figure extraction
 - **PDF only** — `generate_picture_images` is a PDF pipeline option; JATS/HTML pictures are references without image data (skip, or fetch linked image later — out of scope)
@@ -134,10 +138,39 @@ python scripts/query.py "<question>" [--k 5] [--type text|figure] [--pmid PMID] 
 6. return JSON: `[{id, type, doc_key, pmid, title, section, page, path, text, dense_rank, lexical_rank, rrf_score}, ...]` (omit absent fields — e.g. `lexical_rank` absent if only matched dense leg)
 7. `/paper-rag:ask` reads JSON, Claude writes cited answer
 
+## Step 6b: `scripts/cite.py` — BibTeX generation
+```
+python scripts/cite.py [doc_key|pmid ...] [--all] [--collection C]
+```
+1. resolve targets: explicit `doc_key`/`pmid` args, or `--all` (every doc in the current home's `papers/` dir, any collection)
+2. read `papers/<doc_key>/metadata.json` per target (Step 2) — skip with a stderr warning if a target has no metadata file (e.g. hand-copied local file, never had PMID lookup)
+3. build one BibTeX entry per paper:
+   - entry type `@article`
+   - cite key: `{first_author_lastname}{year}{first_significant_title_word}` lowercased (e.g. `kim2019metformin`), collision-suffixed `a`/`b`/... if two papers would generate the same key
+   - fields: `author` (` and `-joined `"{family}, {given}"` per entry, Step 2's structured list), `title`, `journal`, `year`, `volume`, `number` (issue), `pages`, `doi`, `pmid` (custom field, most BibTeX styles ignore unknown fields harmlessly)
+4. print concatenated `.bib` text to stdout (no file write — caller redirects, e.g. `> refs.bib`)
+- No dedup logic needed beyond metadata.json presence — same `doc_key` never appears twice on disk
+
+## Step 6c: `scripts/mine.py` — author-position / bibliographic filtering
+- **Not vector search** — "first author", "last author", "year", "journal" are structured facts in `metadata.json` (Step 2), not something dense/BM25 chunk retrieval reasons about well. Bypasses chroma/bm25 entirely; globs `papers/*/metadata.json` in the current home and filters in Python
+```
+python scripts/mine.py [--author NAME] [--as first|last|any] [--year Y|Y-Y] [--journal J] [--collection C]
+```
+1. `--author NAME` matches against any `authors[i]["family"]` (case-insensitive substring); `--as` narrows to position: `first` → `authors[0]` only, `last` → `authors[-1]` only, `any` (default) → any position
+2. `--year` accepts a single year or an inclusive range (`2018-2022`)
+3. `--journal` substring-matches the `journal` field
+4. filters AND together when multiple given; with no filters, lists every paper in the home
+5. return JSON: `[{doc_key, pmid, title, authors, year, journal, position}, ...]` where `position` is `"first"`/`"last"`/`"middle"`/`null` relative to whichever `--author` matched (omitted if no `--author` given)
+- **User identity**: `--author` is passed explicitly each call, or defaults to `author_name` in `config.json` if set (`/paper-rag:init --author "Ecker C"`, or a plain setter `/paper-rag:whoami "Ecker C"` that just patches that one config key) — lets "which papers did I publish as first author" work with no args
+- `/paper-rag:mine [--as first|last|any] [--year ...] [--journal ...]` reads JSON, Claude lists matches as prose/table
+
 ## Step 7: Command wiring
 All commands run `uv run --project ${CLAUDE_PLUGIN_ROOT} python ${CLAUDE_PLUGIN_ROOT}/scripts/<script>.py ...`
 - `/paper-rag:ingest <pmid|url|local-path>`: run `ingest.py` with the argument; script handles fetching. Claude reports JSON summary
-- `/paper-rag:ask <question>`: run `query.py "<question>"`, parse JSON, write cited answer (cite pmid/title/section; link figure PNG paths)
+- `/paper-rag:ask <question>`: run `query.py "<question>"`, parse JSON, write cited answer (cite pmid/title/section; link figure PNG paths); appends a `## References` BibTeX block (via `cite.py <pmids referenced in the answer>`) after the prose
+- `/paper-rag:cite [doc_key|pmid ...] [--all]`: run `cite.py` with the arguments, print raw `.bib` output
+- `/paper-rag:mine [--as first|last|any] [--year Y|Y-Y] [--journal J]`: run `mine.py`, parse JSON, list matches (title, journal, year, position)
+- `/paper-rag:whoami <name>`: patch `author_name` in `config.json` — one-time setup so `/paper-rag:mine` needs no `--author` flag
 
 ## Step 8: Testing
 - `tests/` with pytest + fixtures: 1 small PDF, 1 JATS XML
