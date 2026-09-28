@@ -25,7 +25,7 @@ def _patch_convert_and_chunk(monkeypatch, n_chunks=3, n_figures=0):
     monkeypatch.setattr(ingest.convert_lib, "convert_document", lambda path, ocr=False: object())
     monkeypatch.setattr(ingest.chunk_lib, "chunk_document", lambda doc, model: _fake_chunks(n_chunks))
 
-    def fake_extract_figures(doc, doc_key, figures_dir, describe_figures=False):
+    def fake_extract_figures(doc, doc_key, figures_dir, source_path=None, describe_figures=False):
         figures_dir.mkdir(parents=True, exist_ok=True)
         figs = []
         for i in range(n_figures):

@@ -256,7 +256,9 @@ def main(
         (doc_dir / "fulltext.txt").write_text("\n\n".join(c.text.strip() for c in chunks) + "\n")
 
         figures_dir = doc_dir / "figures"
-        figs = figures_lib.extract_figures(doc, doc_key, figures_dir, describe_figures=describe_figures)
+        figs = figures_lib.extract_figures(
+            doc, doc_key, figures_dir, source_path=source_path, describe_figures=describe_figures
+        )
         for fig in figs:
             entry_meta = dict(base_meta)
             entry_meta["type"] = "figure"
