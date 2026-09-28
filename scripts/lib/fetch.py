@@ -55,6 +55,27 @@ def pmid_to_pmcid(pmid: str) -> Optional[str]:
     return record["pmcid"]
 
 
+_JATS_DOCTYPE = (
+    b'<!DOCTYPE article PUBLIC "-//NLM//DTD JATS (Z39.96) Journal Publishing DTD v1.2 20190208//EN" '
+    b'"JATS-journalpublishing1.dtd">'
+)
+
+
+def _unwrap_jats_articleset(content: bytes) -> bytes:
+    """Unwrap NCBI's efetch (db=pmc) ``<pmc-articleset>`` envelope to a bare
+    ``<article>`` with a JATS DOCTYPE.
+
+    efetch always wraps the article in a ``pmc-articleset`` element carrying an NLM
+    "ARTICLE SET" DOCTYPE, not a JATS one. docling's format sniffer only recognizes
+    JATS XML when the DOCTYPE names JATS-journalpublishing/-archive, so the wrapped
+    document is otherwise left undetected and conversion fails.
+    """
+    match = re.search(rb"<article\b.*</article>", content, re.DOTALL)
+    if not match:
+        return content
+    return b'<?xml version="1.0" encoding="UTF-8"?>' + _JATS_DOCTYPE + match.group(0)
+
+
 def fetch_jats(pmcid: str, dest_dir: Path) -> Path:
     """Fetch full-text JATS XML for a PMCID via efetch (db=pmc). Writes dest_dir/source.xml."""
     _rate_limit()
@@ -67,7 +88,7 @@ def fetch_jats(pmcid: str, dest_dir: Path) -> Path:
     resp.raise_for_status()
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest_path = dest_dir / "source.xml"
-    dest_path.write_bytes(resp.content)
+    dest_path.write_bytes(_unwrap_jats_articleset(resp.content))
     return dest_path
 
 

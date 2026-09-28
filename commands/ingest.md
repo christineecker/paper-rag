@@ -6,6 +6,20 @@ allowed-tools: Bash(uv run --project ${CLAUDE_PLUGIN_ROOT}:*)
 
 Ingest a paper into the active paper-rag library.
 
+**Local file, no PMID given:** if `$ARGUMENTS` targets a local file path (not a PMID, not
+a URL) and does not include `--pmid`, first try to resolve the PMID before ingesting:
+
+1. Read enough of the file (title, authors, journal, year — e.g. via the PDF's first page)
+   to identify the paper.
+2. Look it up with the `pubmed` MCP server: prefer `lookup_article_by_citation`; fall back
+   to `search_articles` with title/author/journal terms if that doesn't resolve.
+3. If a confident single match is found, pass its PMID as `--pmid <PMID>` to the ingest
+   command below (this also lets full citation metadata be fetched instead of a bare
+   metadata-only stub).
+4. If no confident match is found (ambiguous or no hits), tell the user the PMID couldn't
+   be resolved and ask them to supply it manually (`--pmid`) or confirm ingesting without
+   one, rather than ingesting silently.
+
 Run:
 
 ```
