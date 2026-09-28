@@ -28,8 +28,10 @@ uv run --project ${CLAUDE_PLUGIN_ROOT} python ${CLAUDE_PLUGIN_ROOT}/scripts/inge
 
 The script resolves the input (PMID → PMC OA JATS XML, falling back to PDF, falling back
 to metadata-only ingest; URL → direct download; local path → copied in place), converts
-and chunks the document with docling, extracts figures (PDF only), embeds everything with
-the configured embedding model, and rebuilds the BM25 lexical index for the collection.
+and chunks the document with docling, writes the concatenated full text to
+`fulltext.txt` next to the source file, extracts figures (PDF only), embeds everything
+with the configured embedding model, and rebuilds the BM25 lexical index for the
+collection.
 
 It prints a JSON summary to stdout: `doc_key`, `title`, `has_fulltext`, chunk/figure
 counts, `embedding_model`, `collection`. Report this summary to the user in plain language
