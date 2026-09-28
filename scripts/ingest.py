@@ -253,7 +253,7 @@ def main(
             entries.append({"id": f"{doc_key}::text::{i}", "text": c.text, "metadata": entry_meta})
         n_text_chunks = len(chunks)
 
-        (doc_dir / "fulltext.txt").write_text("\n\n".join(c.text.strip() for c in chunks) + "\n")
+        (doc_dir / "fulltext.md").write_text(doc.export_to_markdown() + "\n")
 
         figures_dir = doc_dir / "figures"
         figs = figures_lib.extract_figures(

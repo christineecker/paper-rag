@@ -31,7 +31,7 @@ $PAPER_RAG_HOME/
   papers/<doc_key>/
     source.{xml,pdf,html}
     metadata.json
-    fulltext.txt                # docling-chunked full text, one paper per file (full-text ingests only)
+    fulltext.md                 # docling's full markdown export (full-text ingests only)
     figures/fig_N.png
   config.json                   # embedding model default, author_name, etc.
 ```
