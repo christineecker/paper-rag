@@ -1,5 +1,5 @@
 <title>paper-rag architecture</title>
-<meta name="description" content="How /paper-rag:ingest and /paper-rag:ask move data through the plugin, and how hybrid search fuses dense and lexical retrieval.">
+<meta name="description" content="How ingest, ask, and the bibliographic commands move data through paper-rag — hybrid retrieval versus a direct metadata scan.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -128,12 +128,12 @@
 
 <main>
   <h1>paper-rag</h1>
-  <p class="lede">Two paths through the same store: <b style="color:var(--accent)">ingest</b> writes chunks in, <b style="color:var(--accent)">ask</b> reads them back through hybrid retrieval.</p>
+  <p class="lede"><b style="color:var(--accent)">ingest</b> writes chunks and citation metadata in; <b style="color:var(--accent)">ask</b> reads chunks back through hybrid retrieval; <b style="color:var(--accent)">cite</b>/<b style="color:var(--accent)">mine</b> read the metadata directly, skipping the vector store entirely.</p>
 
   <section>
     <h2>ingest → chroma + bm25</h2>
     <figure>
-      <svg viewBox="0 0 840 260" role="img" aria-label="paper-rag ingest pipeline: a source (PMID, URL, or local file) is fetched, converted by docling, chunked, and figures extracted, then upserted into a Chroma collection keyed by embedding model, which triggers a full rebuild of the BM25 lexical index for that same collection.">
+      <svg viewBox="0 0 840 330" role="img" aria-label="paper-rag ingest pipeline: a source (PMID, URL, or local file) is fetched, converted by docling, chunked, and figures extracted, then upserted into a Chroma collection keyed by embedding model, which triggers a full rebuild of the BM25 lexical index for that same collection. In parallel, the same fetch step pulls citation metadata (authors, year, journal, doi) and writes it straight to metadata.json in the home directory, bypassing conversion, chunking, and both indexes entirely.">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
             <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
@@ -196,10 +196,23 @@
         <text x="766" y="112" text-anchor="middle" class="title-serif">home dir</text>
         <text x="766" y="129" text-anchor="middle" class="lbl-sm">papers/&lt;doc_key&gt;/</text>
         <text x="766" y="142" text-anchor="middle" class="lbl-sm">source.* + figures/</text>
+
+        <!-- metadata bypass -->
+        <line x1="65" y1="150" x2="65" y2="260" stroke="currentColor" stroke-dasharray="3 3"/>
+        <text x="80" y="220" text-anchor="start" class="lbl-sm" fill="var(--ink-dim)">citation fetch</text>
+
+        <rect x="10" y="260" width="150" height="50" rx="6" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <text x="85" y="280" text-anchor="middle" class="lbl">metadata.json</text>
+        <text x="85" y="294" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">authors, year, journal, doi</text>
+
+        <line x1="160" y1="285" x2="766" y2="285" stroke="currentColor" stroke-dasharray="3 3"/>
+        <line x1="766" y1="285" x2="766" y2="152" stroke="currentColor" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+        <text x="463" y="278" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">bypasses convert · chunk · chroma · bm25</text>
       </svg>
       <figcaption>
         <b>doc_key</b> (PMID or sha256) is written on every chroma entry and reused for delete-then-reinsert dedup.
-        Every ingest that touches chroma also <b>fully rebuilds</b> the BM25 index — dashed arrow — since BM25's IDF weights need the whole corpus, not just the new chunks.
+        Every ingest that touches chroma also <b>fully rebuilds</b> the BM25 index — since BM25's IDF weights need the whole corpus, not just the new chunks.
+        <b>metadata.json</b> (dashed path) is written straight from the citation fetch — it never enters either index, which is what lets <code>cite.py</code>/<code>mine.py</code> answer without touching them (next figure).
       </figcaption>
     </figure>
   </section>
@@ -268,6 +281,57 @@
     <div class="note">
       <b>Falls back to dense-only</b> — with a warning — if a collection exists but its BM25 pickle doesn't (e.g. papers ingested before hybrid search shipped).
     </div>
+  </section>
+
+  <section>
+    <h2>cite / mine → metadata.json, no index</h2>
+    <figure>
+      <svg viewBox="0 0 800 200" role="img" aria-label="paper-rag structured bibliographic queries: cite.py and mine.py both glob metadata.json files directly across the home directory's papers folder, filtering in plain Python with no dense or lexical search involved, then produce either a BibTeX file or a filtered JSON list of matching papers.">
+        <defs>
+          <marker id="arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect x="10" y="70" width="150" height="60" rx="6" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <text x="85" y="94" text-anchor="middle" class="lbl">metadata.json</text>
+        <text x="85" y="108" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">papers/*/&lt;doc_key&gt;/</text>
+
+        <line x1="160" y1="100" x2="208" y2="100" stroke="currentColor" marker-end="url(#arrow3)"/>
+
+        <rect x="210" y="70" width="150" height="60" rx="6" fill="none" stroke="currentColor"/>
+        <text x="285" y="94" text-anchor="middle" class="title-serif">glob + filter</text>
+        <text x="285" y="110" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">plain python · no chroma · no bm25</text>
+
+        <line x1="360" y1="100" x2="400" y2="100" stroke="currentColor"/>
+        <line x1="400" y1="100" x2="400" y2="45" stroke="currentColor"/>
+        <line x1="400" y1="45" x2="440" y2="45" stroke="currentColor" marker-end="url(#arrow3)"/>
+        <line x1="400" y1="100" x2="400" y2="155" stroke="currentColor"/>
+        <line x1="400" y1="155" x2="440" y2="155" stroke="currentColor" marker-end="url(#arrow3)"/>
+
+        <rect x="440" y="20" width="140" height="50" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+        <text x="510" y="41" text-anchor="middle" class="title-serif" fill="var(--accent)">cite.py</text>
+        <text x="510" y="56" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">doc_key · pmid · --all</text>
+
+        <rect x="440" y="130" width="140" height="50" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+        <text x="510" y="151" text-anchor="middle" class="title-serif" fill="var(--accent)">mine.py</text>
+        <text x="510" y="166" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">--author · --year · --journal</text>
+
+        <line x1="580" y1="45" x2="628" y2="45" stroke="currentColor" marker-end="url(#arrow3)"/>
+        <line x1="580" y1="155" x2="628" y2="155" stroke="currentColor" marker-end="url(#arrow3)"/>
+
+        <rect x="630" y="20" width="150" height="50" rx="6" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <text x="705" y="41" text-anchor="middle" class="lbl">refs.bib</text>
+        <text x="705" y="56" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">.bib text → stdout</text>
+
+        <rect x="630" y="130" width="150" height="50" rx="6" fill="var(--accent-soft)" stroke="var(--line)"/>
+        <text x="705" y="151" text-anchor="middle" class="lbl">matches</text>
+        <text x="705" y="166" text-anchor="middle" class="lbl-sm" fill="var(--ink-dim)">JSON → stdout</text>
+      </svg>
+      <figcaption>
+        "First author", "which journal", "which year" are facts already sitting in <b>metadata.json</b> — asking the vector store to relevance-rank for them would be answering a lookup with a guess. <code>/paper-rag:mine</code> defaults <code>--author</code> from <code>config.json</code>'s <code>author_name</code>, set once via <code>/paper-rag:whoami</code>.
+      </figcaption>
+    </figure>
   </section>
 
   <footer>paper-rag · plugin architecture</footer>

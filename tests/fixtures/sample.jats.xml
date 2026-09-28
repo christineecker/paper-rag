@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//NLM//DTD JATS (Z39.96) Journal Archiving and Interchange DTD v1.2 20190208//EN" "JATS-archivearticle1.dtd">
+<article xmlns:xlink="http://www.w3.org/1999/xlink" article-type="research-article">
+  <front>
+    <journal-meta>
+      <journal-title-group>
+        <journal-title>Journal of Synthetic Testing</journal-title>
+      </journal-title-group>
+    </journal-meta>
+    <article-meta>
+      <article-id pub-id-type="pmc">PMC0000000</article-id>
+      <article-id pub-id-type="doi">10.1000/test.0001</article-id>
+      <title-group>
+        <article-title>A Minimal Synthetic Paper About Metformin</article-title>
+      </title-group>
+      <contrib-group>
+        <contrib contrib-type="author">
+          <name><surname>Kim</surname><given-names>Jane</given-names></name>
+        </contrib>
+        <contrib contrib-type="author">
+          <name><surname>Ecker</surname><given-names>Christine</given-names></name>
+        </contrib>
+      </contrib-group>
+      <pub-date pub-type="epub"><year>2021</year></pub-date>
+      <volume>10</volume>
+      <issue>2</issue>
+      <fpage>100</fpage>
+      <lpage>110</lpage>
+      <elocation-id>e00001</elocation-id>
+      <abstract>
+        <p>This is a synthetic abstract about metformin for testing paper-rag ingestion.</p>
+      </abstract>
+      <kwd-group>
+        <kwd>metformin</kwd>
+        <kwd>diabetes</kwd>
+      </kwd-group>
+    </article-meta>
+  </front>
+  <body>
+    <sec>
+      <title>Introduction</title>
+      <p>Metformin is a commonly studied drug in synthetic test fixtures.</p>
+    </sec>
+    <sec>
+      <title>Methods</title>
+      <p>We describe a synthetic method with no real experimental content.</p>
+    </sec>
+    <sec>
+      <title>Acknowledgements</title>
+      <p>We thank the synthetic funding body for synthetic support.</p>
+    </sec>
+    <ref-list>
+      <title>References</title>
+      <ref id="ref1">
+        <mixed-citation>Someone et al. Some Journal. 2020.</mixed-citation>
+      </ref>
+    </ref-list>
+  </body>
+</article>

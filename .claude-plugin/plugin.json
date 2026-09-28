@@ -1,0 +1,5 @@
+{
+  "name": "paper-rag",
+  "version": "0.1.0",
+  "description": "RAG over PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and Chroma for vector storage, with hybrid dense+lexical retrieval, BibTeX citation export, and bibliographic mining."
+}

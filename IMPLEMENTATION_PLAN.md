@@ -39,7 +39,7 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
 - `commands/ingest.md` — `/paper-rag:ingest <pmid|url|path>`
 - `commands/ask.md` — `/paper-rag:ask <question>`
 - `commands/cite.md` — `/paper-rag:cite [doc_key|pmid ...] [--all]`
-- `commands/mine.md` — `/paper-rag:mine [--as first|last|any] [--year Y|Y-Y] [--journal J]`
+- `commands/mine.md` — `/paper-rag:mine [--as first|last|any] [--year Y|Y-Y] [--journal J] [--keyword K] [--pub-type T]`
 - `commands/whoami.md` — `/paper-rag:whoami <name>`
 
 ## Step 1b: `scripts/init.py` + `commands/init.md`
@@ -59,10 +59,10 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
 - `fetch.py` — plain HTTP from the script (no MCP needed):
   - `pmid_to_pmcid(pmid)` via NCBI ID converter API
   - `fetch_jats(pmcid) -> Path` via efetch (`db=pmc`) → `papers/<pmid>/source.xml`
-  - fallback: PMC OA service PDF link → `source.pdf`; if not OA, exit with "no open-access full text — provide local file"
+  - fallback: PMC OA service PDF link → `source.pdf`; if not OA and no local file given, fall back to metadata-only ingest (Step 3c) unless `--require-fulltext` is passed, in which case exit with "no open-access full text — provide local file"
   - `fetch_url(url) -> Path` for direct PDF/XML links (avoid scraping PMC HTML pages — bot protection)
   - Respect NCBI rate limits (≤3 req/s without API key; optional `NCBI_API_KEY` env)
-- Metadata: `fetch_citation_metadata(pmid) -> dict` via efetch `db=pubmed` (`rettype=xml`) — pulls title, authors (list of `{"family": ..., "given": ...}`, order preserved — structured, not a joined string, so `authors[0]`/`authors[-1]` can answer "first/last author" queries), journal, year, volume, issue, pages, doi; falls back to parsing JATS front matter fields when no PMID (local file / non-PMC URL ingest). Saved as `papers/<doc_key>/metadata.json`, the source for chroma's `title` field, BibTeX generation (Step 6b), and author/year/journal filtering (Step 6c). pubmed MCP optional for Claude-side lookup only, not used by the script
+- Metadata: `fetch_citation_metadata(pmid) -> dict` via efetch `db=pubmed` (`rettype=xml`) — pulls title, authors (list of `{"family": ..., "given": ...}`, order preserved — structured, not a joined string, so `authors[0]`/`authors[-1]` can answer "first/last author" queries), journal, year, volume, issue, pages, doi, **abstract** (plain text, from PubMed's `AbstractText`), **keywords** (list of strings — `MeshHeadingList` + author `KeywordList` merged, deduped case-insensitively), **pub_types** (list of strings, e.g. `["Review"]`, from `PublicationTypeList`), **pmcid** (from the same ID-converter lookup `fetch_jats` already does, Step 2), **elocation_id** (PubMed `ELocationID`, e.g. `e12345` — fallback citation locator for journals with no page range); falls back to parsing JATS front matter fields when no PMID (local file / non-PMC URL ingest) — JATS `<abstract>` for abstract, `<kwd-group>` for keywords, `<article-id pub-id-type="pmc">` for pmcid, `<elocation-id>` for elocation_id; `pub_types` and `pmcid` left `null`/omitted for non-PubMed sources with no equivalent. Saved as `papers/<doc_key>/metadata.json`, the source for chroma's `title` field, BibTeX generation (Step 6b), author/year/journal/keyword/pubtype filtering (Step 6c), and the abstract chunk (Step 3c). pubmed MCP optional for Claude-side lookup only, not used by the script
 - `convert.py`: `convert_document(path: Path) -> DoclingDocument` via `DocumentConverter(format_options=...)`
   - Formats: `InputFormat.XML_JATS`, `InputFormat.PDF`, `InputFormat.HTML`
   - PDF: `PdfPipelineOptions(do_ocr=False, generate_picture_images=True, images_scale=2.0)`; `--ocr` flag enables OCR for scanned PDFs
@@ -71,7 +71,8 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
 - `chunk_document(doc, embedding_model) -> list[Chunk]` via `docling.chunking.HybridChunker`
 - Tokenizer + `max_tokens` derived from the same `embedding_model` as Step 4b (e.g. bge-small = 512) — prevents silent truncation at embed time
 - Per-chunk: text, heading path, page_no (PDF only), doc metadata (title, source filename)
-- **Section handling**: acknowledgements, funding, and conflict-of-interest sections are chunked and embedded like any other text — heading path (`"Acknowledgements"`, `"Funding"`) makes them retrievable for questions like "which papers acknowledge funder X". Only the **reference list / bibliography** is skipped before chunking (JATS: `<ref-list>` tag; PDF: heading-text match on "References"/"Bibliography") — pure citation-string noise with no prose value, and redundant with `cite.py`'s own metadata (Step 6b)
+- **Section handling**: acknowledgements, funding, and conflict-of-interest sections are chunked and embedded like any other text — heading path (`"Acknowledgements"`, `"Funding"`) makes them retrievable for questions like "which papers acknowledge funder X". Two sections are skipped before chunking: the **reference list / bibliography** (JATS: `<ref-list>` tag; PDF: heading-text match on "References"/"Bibliography") — pure citation-string noise, redundant with `cite.py`'s own metadata (Step 6b) — and the **abstract** (JATS: `<abstract>` tag; PDF: heading-text match on "Abstract") — already embedded once from `metadata.json` as its own chunk (Step 3c); re-chunking the PDF/JATS copy would duplicate the same text under a second id and waste retrieval slots on near-identical hits
+- **Caption dedup**: `PictureItem`/caption nodes are excluded from the text-chunking pass (same reasoning as the abstract skip above) — HybridChunker otherwise sweeps inline caption paragraphs into a regular `type: "text"` chunk in addition to the dedicated `type: "figure"` entry Step 3b creates from the same caption, duplicating the text under two ids with no collision but wasted retrieval slots
 
 ## Step 3b: `scripts/lib/figures.py` — figure extraction
 - **PDF only** — `generate_picture_images` is a PDF pipeline option; JATS/HTML pictures are references without image data (skip, or fetch linked image later — out of scope)
@@ -80,6 +81,14 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
 - Store as **separate chroma entries** (embed caption text, not image) so `/paper-rag:ask` can retrieve "which paper has a figure showing X" and point to the saved PNG
 - Metadata: doc_key, page, caption, bbox (JSON string), path, `type: "figure"` (vs `type: "text"` for regular chunks)
 - Uncaptioned figures: skip by default; opt in via `--describe-figures` using `PictureDescriptionApiOptions` or local VLM
+
+## Step 3c: `scripts/lib/abstract.py` — abstract chunk + metadata-only ingest
+- **Every doc with a PubMed/JATS abstract** gets one extra chroma entry: `type: "abstract"`, text = `metadata.json["abstract"]`, id `f"{doc_key}::abstract::0"` — searchable like any text chunk, no truncation/splitting (abstracts fit well under `max_tokens`)
+- Metadata: doc_key, pmid, title, `type: "abstract"` (no page/heading path — abstract has neither)
+- Goes into both chroma and the BM25 corpus (Step 4c) same as text/figure chunks
+- **Metadata-only ingest**: when a PMID has no OA full text and no local file is supplied, don't abort — fetch citation metadata (incl. abstract) via Step 2, write `papers/<doc_key>/metadata.json` with `"has_fulltext": false`, embed the abstract chunk only (skip Step 3 chunking / Step 3b figures entirely since there's no source document to convert). `--require-fulltext` flag restores the old abort-if-no-OA behavior for callers that need full text specifically
+- Full-text docs get `"has_fulltext": true` in `metadata.json` plus the normal text/figure chunks *and* the abstract chunk — abstract is always embedded when known, regardless of full-text availability
+- `/paper-rag:ask` results can now include `type: "abstract"` hits — treat like any chunk when citing (title/section already say "Abstract" via the doc_key + type, no page number)
 
 ## Step 4: `scripts/lib/store.py`
 - `get_collection(embedding_model: str)`: `chromadb.PersistentClient(path=$PAPER_RAG_HOME/chroma)`, `get_or_create_collection(name, embedding_function=SentenceTransformerEmbeddingFunction(embedding_model), metadata={"hnsw:space": "cosine", "embedding_model": embedding_model})`
@@ -106,16 +115,16 @@ RAG for PubMed papers (JATS XML/PDF/HTML) using docling for parsing/chunking and
 
 ## Step 5: `scripts/ingest.py` (typer CLI)
 ```
-python scripts/ingest.py <pmid|url|path> [--pmid PMID] [--title TITLE] [--tags a,b] [--force] [--ocr] [--describe-figures] [--embedding-model M]
+python scripts/ingest.py <pmid|url|path> [--pmid PMID] [--title TITLE] [--tags a,b] [--force] [--ocr] [--describe-figures] [--embedding-model M] [--require-fulltext]
 ```
-1. resolve input: PMID → `fetch_jats` (fallback PDF); URL → `fetch_url`; local path → copy into `papers/<doc_key>/source.*`
+1. resolve input: PMID → `fetch_jats` (fallback PDF, fallback metadata-only per Step 3c); URL → `fetch_url`; local path → copy into `papers/<doc_key>/source.*`
 2. compute `doc_key`; dedup check (see below) — abort early unless `--force`
-3. convert → chunk → extract figures (PDF)
-4. build per-entry metadata (doc_key, pmid if known, title, tags, section, page, source sha256, type)
+3. fetch citation metadata (incl. abstract, Step 2); if full text resolved: convert → chunk → extract figures (PDF); if metadata-only: skip straight to step 6 with just the abstract chunk (Step 3c)
+4. build per-entry metadata (doc_key, pmid if known, title, tags, section, page, source sha256, type) for every text/figure/abstract chunk
 5. if `--force` and prior entries exist: `collection.delete(where={"doc_key": K})` before insert
 6. upsert to chroma
 7. rebuild BM25 index for this collection (`build_bm25_index`, Step 4c) — always runs after upsert, delete-then-insert included
-8. print JSON summary (doc_key, title, n text chunks, n figures, embedding model, collection) to stdout
+8. print JSON summary (doc_key, title, `has_fulltext`, n text chunks, n figures, embedding model, collection) to stdout
 
 ### Dedup strategy
 - **`doc_key`**: PMID when known, else sha256 of source file content — stored on every entry, sole delete/dedup key
@@ -128,7 +137,7 @@ python scripts/ingest.py <pmid|url|path> [--pmid PMID] [--title TITLE] [--tags a
 
 ## Step 6: `scripts/query.py` (typer CLI) — hybrid search
 ```
-python scripts/query.py "<question>" [--k 5] [--type text|figure] [--pmid PMID] [--where '<json>'] [--embedding-model M] [--dense-only] [--lexical-only] [--rrf-k 60]
+python scripts/query.py "<question>" [--k 5] [--type text|figure|abstract] [--pmid PMID] [--where '<json>'] [--embedding-model M] [--dense-only] [--lexical-only] [--rrf-k 60]
 ```
 1. load collection + BM25 index (warn + list collections if missing; if BM25 index missing but collection exists, fall back to dense-only with a warning — e.g. ingested before Step 4c shipped)
 2. build `where` from `--type`/`--pmid` (raw `--where` as escape hatch); applied to the dense leg via chroma's `where`, and to the lexical leg by filtering `doc_ids` post-hoc (BM25 has no native metadata filter)
@@ -147,20 +156,21 @@ python scripts/cite.py [doc_key|pmid ...] [--all] [--collection C]
 3. build one BibTeX entry per paper:
    - entry type `@article`
    - cite key: `{first_author_lastname}{year}{first_significant_title_word}` lowercased (e.g. `kim2019metformin`), collision-suffixed `a`/`b`/... if two papers would generate the same key
-   - fields: `author` (` and `-joined `"{family}, {given}"` per entry, Step 2's structured list), `title`, `journal`, `year`, `volume`, `number` (issue), `pages`, `doi`, `pmid` (custom field, most BibTeX styles ignore unknown fields harmlessly)
+   - fields: `author` (` and `-joined `"{family}, {given}"` per entry, Step 2's structured list), `title`, `journal`, `year`, `volume`, `number` (issue), `pages` (falls back to `eid = {elocation_id}` when `pages` is empty — eLife/PLOS-style journals), `doi`, `pmid`, `pmcid` (custom field, most BibTeX styles ignore unknown fields harmlessly)
 4. print concatenated `.bib` text to stdout (no file write — caller redirects, e.g. `> refs.bib`)
 - No dedup logic needed beyond metadata.json presence — same `doc_key` never appears twice on disk
 
 ## Step 6c: `scripts/mine.py` — author-position / bibliographic filtering
 - **Not vector search** — "first author", "last author", "year", "journal" are structured facts in `metadata.json` (Step 2), not something dense/BM25 chunk retrieval reasons about well. Bypasses chroma/bm25 entirely; globs `papers/*/metadata.json` in the current home and filters in Python
 ```
-python scripts/mine.py [--author NAME] [--as first|last|any] [--year Y|Y-Y] [--journal J] [--collection C]
+python scripts/mine.py [--author NAME] [--as first|last|any] [--year Y|Y-Y] [--journal J] [--keyword K] [--pub-type T] [--collection C]
 ```
 1. `--author NAME` matches against any `authors[i]["family"]` (case-insensitive substring); `--as` narrows to position: `first` → `authors[0]` only, `last` → `authors[-1]` only, `any` (default) → any position
 2. `--year` accepts a single year or an inclusive range (`2018-2022`)
 3. `--journal` substring-matches the `journal` field
-4. filters AND together when multiple given; with no filters, lists every paper in the home
-5. return JSON: `[{doc_key, pmid, title, authors, year, journal, position}, ...]` where `position` is `"first"`/`"last"`/`"middle"`/`null` relative to whichever `--author` matched (omitted if no `--author` given)
+4. `--keyword K` matches against any entry in `keywords` (case-insensitive substring); `--pub-type T` matches against any entry in `pub_types` (case-insensitive substring, e.g. `--pub-type review`)
+5. filters AND together when multiple given; with no filters, lists every paper in the home
+6. return JSON: `[{doc_key, pmid, pmcid, title, authors, year, journal, keywords, pub_types, position}, ...]` where `position` is `"first"`/`"last"`/`"middle"`/`null` relative to whichever `--author` matched (omitted if no `--author` given)
 - **User identity**: `--author` is passed explicitly each call, or defaults to `author_name` in `config.json` if set (`/paper-rag:init --author "Ecker C"`, or a plain setter `/paper-rag:whoami "Ecker C"` that just patches that one config key) — lets "which papers did I publish as first author" work with no args
 - `/paper-rag:mine [--as first|last|any] [--year ...] [--journal ...]` reads JSON, Claude lists matches as prose/table
 
@@ -169,7 +179,7 @@ All commands run `uv run --project ${CLAUDE_PLUGIN_ROOT} python ${CLAUDE_PLUGIN_
 - `/paper-rag:ingest <pmid|url|local-path>`: run `ingest.py` with the argument; script handles fetching. Claude reports JSON summary
 - `/paper-rag:ask <question>`: run `query.py "<question>"`, parse JSON, write cited answer (cite pmid/title/section; link figure PNG paths); appends a `## References` BibTeX block (via `cite.py <pmids referenced in the answer>`) after the prose
 - `/paper-rag:cite [doc_key|pmid ...] [--all]`: run `cite.py` with the arguments, print raw `.bib` output
-- `/paper-rag:mine [--as first|last|any] [--year Y|Y-Y] [--journal J]`: run `mine.py`, parse JSON, list matches (title, journal, year, position)
+- `/paper-rag:mine [--as first|last|any] [--year Y|Y-Y] [--journal J] [--keyword K] [--pub-type T]`: run `mine.py`, parse JSON, list matches (title, journal, year, position)
 - `/paper-rag:whoami <name>`: patch `author_name` in `config.json` — one-time setup so `/paper-rag:mine` needs no `--author` flag
 
 ## Step 8: Testing
@@ -178,6 +188,7 @@ All commands run `uv run --project ${CLAUDE_PLUGIN_ROOT} python ${CLAUDE_PLUGIN_
   - `--force` re-ingest leaves no stale IDs
   - text/figure IDs don't collide
   - switching `--embedding-model` targets a different collection
+  - metadata-only ingest (mock non-OA PMID): `has_fulltext: false`, abstract chunk present, no text/figure chunks
   - `PAPER_RAG_HOME` pointed at tmp dir
 - Manual: ingest 1-2 real PMIDs (OA JATS + PDF fallback), sample `/paper-rag:ask`, check retrieval relevance + citation accuracy
 
