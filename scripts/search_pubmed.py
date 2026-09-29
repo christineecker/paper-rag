@@ -46,12 +46,12 @@ def _slugify(text: str, max_len: int = 40) -> str:
 
 def _write_search_dir(home: Path, payload: dict, label: Optional[str], notes: Optional[str]) -> Path:
     """Write this search's query, PMIDs, and full result to their own directory
-    under <home>/searches/, and append a pointer to <home>/pubmed_search_log.jsonl
+    under <home>/pubmed-searches/, and append a pointer to <home>/pubmed_search_log.jsonl
     so the derivation of a final PMID set can be reconstructed later."""
     retrieved_at = datetime.fromisoformat(payload["retrieved_at"])
     stamp = retrieved_at.strftime("%Y-%m-%d_%H%M%S")
     slug = _slugify(label or payload["pubmed_query"])
-    search_dir = home / "searches" / f"{stamp}_{slug}"
+    search_dir = home / "pubmed-searches" / f"{stamp}_{slug}"
     search_dir.mkdir(parents=True, exist_ok=True)
 
     (search_dir / "query.json").write_text(json.dumps({
@@ -103,7 +103,7 @@ def main(
         None, "--notes", help="Freeform clarification/scope notes, saved as clarification.md in the search dir"
     ),
     log: bool = typer.Option(
-        True, "--log/--no-log", help="Save this search under <home>/searches/ and index it (default: on)"
+        True, "--log/--no-log", help="Save this search under <home>/pubmed-searches/ and index it (default: on)"
     ),
     funnel: bool = typer.Option(
         False, "--funnel/--no-funnel",

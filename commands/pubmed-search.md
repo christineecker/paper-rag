@@ -62,7 +62,7 @@ It prints a JSON result: `pmids`, `pubmed_query` (the exact compiled query, for
 reproducibility), `total_count`/`returned_count`/`truncated`, `warnings`, and
 `provenance` (query translation, ESearch history tokens, per-concept clause mapping).
 
-Every run is saved to its own directory under `<paper-rag home>/searches/<timestamp>_
+Every run is saved to its own directory under `<paper-rag home>/pubmed-searches/<timestamp>_
 <slug>/`:
 
 - `query.json` — label, mode, compiled query, sensitivity
