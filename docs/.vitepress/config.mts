@@ -34,6 +34,7 @@ export default defineConfig({
             { text: 'Asking Questions', link: '/guide/ask' },
             { text: 'Citing & Filtering', link: '/guide/cite-and-mine' },
             { text: 'Tags & Homes', link: '/guide/tags-and-homes' },
+            { text: 'Dashboard', link: '/guide/dashboard' },
           ],
         },
       ],

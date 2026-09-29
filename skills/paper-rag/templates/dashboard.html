@@ -1,0 +1,858 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Paper RAG Library</title>
+<style>
+/* Scientific Reference & Inspector design system (DESIGN.md): utilitarian modernism, obsidian/graphite surfaces + warm amber accent */
+:root{
+  --bg:#111113; --sidebar:#111113; --panel:#18181b; --panel-2:#1c1c20; --raised:#1c1c20;
+  --code:#0d0d0f;
+  --border:#2a2a2f; --border-soft:#2a2a2f; --border-hover:#38383e;
+  --text:#e8e7e3; --text-dim:#b9b8bd; --text-faint:#8b8a92;
+  --accent:#f5a35c; --accent-strong:#f8b174; --accent-bg:rgba(245,163,92,.16); --accent-border:rgba(245,163,92,.25);
+  --accent-hover:#e9944a; --accent-active:#d9843c;
+  --oa:#7adff9; --oa-bg:rgba(122,223,249,.14); --pdf:#7adff9; --pdf-bg:rgba(122,223,249,.14);
+  --sel-row:rgba(245,163,92,.16); --hover:#1c1c20;
+  --mono:ui-monospace,Menlo,Monaco,"Cascadia Code","Roboto Mono",Consolas,monospace;
+  --tnum:"tnum" 1,"cv05" 1;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,sans-serif;margin:0;font-size:13px;-webkit-font-smoothing:antialiased;}
+.app{display:flex;flex-direction:column;height:100vh;min-height:0;}
+
+/* app header */
+.appbar{display:flex;align-items:center;gap:16px;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:var(--sidebar);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.dots{display:flex;gap:6px;flex:none;}
+.dot{width:11px;height:11px;border-radius:50%;}
+.dot.r{background:#8a5a55;}.dot.y{background:#8f7d50;}.dot.g{background:#5d7d5c;}
+.applogo{display:flex;align-items:center;gap:10px;flex:none;}
+.applogo .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#f5a35c,#f8b174);display:flex;align-items:center;justify-content:center;color:#111113;}
+.applogo .mark svg{width:17px;height:17px;}
+.applogo .name{font-weight:700;font-size:14.5px;letter-spacing:-.01em;}
+.applogo .ver{font-size:10.5px;color:var(--text-faint);margin-top:1px;}
+.syncpill{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-dim);background:var(--panel-2);border-radius:20px;padding:5px 12px;flex:none;}
+.syncpill .sdot{width:7px;height:7px;border-radius:50%;background:var(--oa);}
+.gsearch{flex:1;min-width:200px;display:flex;align-items:center;gap:9px;background:var(--code);border:1px solid var(--border-soft);border-radius:4px;padding:9px 14px;max-width:560px;}
+.gsearch svg{width:14px;height:14px;color:var(--text-faint);flex:none;}
+.gsearch input{border:none;background:transparent;outline:none;color:var(--text);font-size:12.5px;width:100%;font-family:inherit;}
+.gsearch input::placeholder{color:var(--text-faint);}
+.gsearch .kbd{font-size:10px;color:var(--text-faint);border:1px solid var(--border);border-radius:4px;padding:2px 5px;flex:none;}
+
+.body-wrap{display:flex;flex:1;min-height:0;}
+
+/* icon rail */
+.rail{width:56px;flex:none;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:8px;}
+.rail-btn{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-faint);cursor:pointer;border:1px solid transparent;}
+.rail-btn svg{width:19px;height:19px;}
+.rail-btn.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);}
+.rail-btn:not(.active):hover{color:var(--text-dim);background:var(--hover);}
+
+/* sidebar */
+.sidebar{width:230px;flex:none;background:var(--sidebar);border-right:1px solid var(--border);padding:20px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:26px;}
+.sb-head{display:flex;align-items:center;gap:8px;padding:0 6px;font-size:14.5px;font-weight:700;}
+.sb-head svg{width:16px;height:16px;color:var(--accent);}
+.sb-group-label{font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:500;color:var(--text-faint);padding:0 6px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:4px;cursor:pointer;color:var(--text-dim);}
+.sb-item svg{width:15px;height:15px;flex:none;color:var(--text-faint);}
+.sb-item:hover{background:var(--hover);color:var(--text);}
+.sb-item.active{background:var(--sel-row);color:var(--text);}
+.sb-item.active svg{color:var(--accent);}
+.sb-item .n{font-size:12.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+.sb-item .c{font-size:11px;color:var(--text-faint);font-variant-numeric:tabular-nums;font-feature-settings:var(--tnum);}
+.sb-item.active .c{background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:1px 8px;font-weight:600;}
+.tag-add{cursor:pointer;color:var(--text-faint);font-weight:400;font-size:13px;}
+.tag-add:hover{color:var(--text);}
+.tag-list{display:flex;flex-direction:column;gap:2px;}
+.tag-row{display:flex;align-items:center;gap:10px;padding:7px 6px;border-radius:4px;cursor:pointer;color:var(--text-dim);}
+.tag-row:hover{background:var(--hover);color:var(--text);}
+.tag-row.active{background:var(--panel-2);color:var(--text);}
+.tag-row .dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.tag-row .n{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-storage{margin-top:auto;padding:10px 6px 0;font-size:10.5px;color:var(--text-faint);}
+.sb-storage .bar{height:4px;border-radius:2px;background:var(--panel-2);margin-top:6px;overflow:hidden;}
+.sb-storage .fill{height:100%;width:29%;background:linear-gradient(90deg,#f5a35c,#f8b174);border-radius:2px;}
+.sb-storage .row{display:flex;justify-content:space-between;}
+
+/* main */
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--panel);}
+.toolbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.lsearch{display:flex;align-items:center;gap:8px;background:var(--code);border:1px solid var(--border-soft);border-radius:4px;padding:4px 8px;flex:1;max-width:340px;}
+.lsearch svg{width:13px;height:13px;color:var(--text-faint);flex:none;}
+.lsearch input{border:none;background:transparent;outline:none;color:var(--text);font-size:12px;width:100%;font-family:inherit;}
+.lsearch input::placeholder{color:var(--text-faint);}
+.tb-count{margin-left:auto;font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums;}
+
+.work{flex:1;display:flex;min-height:0;position:relative;}
+.list-pane{flex:1;min-width:0;overflow:auto;display:flex;flex-direction:column;}
+.table-scroll{flex:1;overflow:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{position:sticky;top:0;height:28px;background:var(--bg);text-align:left;font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-faint);font-weight:500;padding:0 12px;border-bottom:1px solid var(--border);white-space:nowrap;z-index:1;}
+thead th.sortable{cursor:pointer;user-select:none;}
+thead th.sortable:hover{color:var(--text-dim);}
+thead th.sortable.sorted{color:var(--accent);}
+thead th .arrow{display:inline-block;width:10px;}
+tbody td{height:28px;padding:0 12px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
+tbody tr{cursor:pointer;}
+tbody tr:hover{background:var(--panel-2);}
+tbody tr.sel{background:var(--sel-row);box-shadow:inset 2px 0 0 var(--accent);}
+.cb{width:14px;height:14px;border-radius:2px;border:1.5px solid var(--border);display:inline-block;flex:none;cursor:pointer;position:relative;}
+.cb:hover{border-color:var(--text-faint);}
+.cb.on{background:var(--accent);border-color:var(--accent);}
+.cb.on::after{content:"";position:absolute;left:3px;top:0;width:4px;height:8px;border:solid #111113;border-width:0 2px 2px 0;transform:rotate(45deg);}
+.cb.half{background:var(--accent-bg);border-color:var(--accent-border);}
+.cb.half::after{content:"";position:absolute;left:2px;top:5px;width:7px;height:2px;background:var(--accent);}
+.selbar{display:flex;align-items:center;gap:12px;}
+.selbar .selcount{color:var(--accent);font-weight:600;}
+.selbar button{background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:4px;color:var(--accent);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+.selbar button:hover{background:rgba(245,163,92,.24);}
+.selbar button.quiet{background:none;border-color:var(--border);color:var(--text-faint);}
+.selbar button.quiet:hover{color:var(--text);}
+.col-cb{width:34px;}
+.col-data{width:92px;}
+.data-icons{display:flex;gap:5px;align-items:center;}
+.di{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex:none;}
+.di svg{width:13px;height:13px;}
+.di.full{background:var(--accent-bg);color:var(--accent);}
+.di.fig{background:var(--oa-bg);color:var(--oa);}
+.di.pdf{background:var(--pdf-bg);color:var(--pdf);}
+.di.off{color:var(--text-faint);opacity:.35;}
+.t-authors{color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;font-size:12.5px;font-weight:500;}
+.t-title{max-width:340px;}
+.t-title .ttl{color:var(--text);font-size:13px;font-weight:500;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+tr.sel .t-title .ttl{color:var(--accent-strong);}
+.t-journal{color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;font-size:12px;}
+.t-year{color:var(--text-dim);font-size:12px;font-variant-numeric:tabular-nums;font-feature-settings:var(--tnum);}
+.statusbar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-faint);background:var(--panel);}
+.statusbar b{color:var(--accent);font-weight:600;}
+
+/* detail */
+.detail{position:absolute;top:0;right:0;bottom:0;width:472px;flex:none;background:var(--sidebar);border-left:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.25,.1,.15,1);box-shadow:-16px 0 32px rgba(0,0,0,.35);z-index:3;}
+.detail.expanded{transform:translateX(0);}
+.d-toolbar{display:flex;align-items:center;gap:4px;padding:10px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--sidebar);z-index:2;}
+.d-tb-close{margin-left:auto;}
+.d-tb-close:hover{color:var(--text);background:var(--panel-2);}
+.d-tb{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-faint);cursor:pointer;}
+.d-tb svg{width:15px;height:15px;}
+.d-tb.active{background:var(--accent-bg);color:var(--accent);}
+.d-tb:not(.active):hover{color:var(--text);background:var(--panel-2);}
+.detail-body{padding:22px 22px 28px;}
+.d-kickrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.d-kicker{font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--accent);font-weight:600;}
+.oa-chip{font-family:inherit;display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.03em;color:var(--oa);background:var(--oa-bg);border-radius:9999px;padding:4px 10px;text-transform:uppercase;}
+.oa-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--oa);}
+.oa-chip.closed{color:var(--text-dim);background:var(--panel-2);}
+.oa-chip.closed::before{background:var(--text-faint);}
+.d-title{font-size:1.25rem;font-weight:600;line-height:1.34;margin:0 0 10px;letter-spacing:-.015em;text-wrap:balance;}
+.d-authors{font-size:12.5px;color:var(--text-dim);line-height:1.6;margin-bottom:6px;}
+.d-more{font-size:12px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:inherit;padding:0;margin-bottom:14px;display:inline-flex;align-items:center;gap:4px;}
+.d-box{background:var(--panel);border:1px solid var(--border-soft);border-radius:8px;padding:12px;margin-bottom:18px;}
+.d-box-label{font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:500;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.d-abstract{font-size:0.8125rem;line-height:1.72;color:var(--text-dim);}
+.d-abstract.clamped{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+.d-abstract.scroll{max-height:260px;overflow-y:auto;padding-right:6px;}
+.d-abstract.scroll::-webkit-scrollbar{width:6px;}
+.d-abstract.scroll::-webkit-scrollbar-thumb{background:var(--border-hover);border-radius:3px;}
+.d-abstract.scroll::-webkit-scrollbar-track{background:transparent;}
+.d-expand-top{font-family:inherit;font-size:11px;text-transform:none;letter-spacing:0;color:var(--accent);cursor:pointer;background:none;border:none;padding:0;font-weight:600;flex:none;}
+.d-expand-top:hover{color:var(--accent-strong);}
+.d-sec-label{font-family:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:500;margin:0 0 9px;display:flex;justify-content:space-between;align-items:center;height:24px;}
+.d-section{margin-bottom:18px;}
+.tag-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.tag-chip{font-size:11px;padding:1px 6px;border-radius:4px;background:rgba(122,223,249,.12);border:1px solid rgba(122,223,249,.3);color:var(--oa);}
+.avail-list{display:flex;flex-direction:column;gap:6px;}
+.avail-row{display:flex;align-items:center;gap:10px;font-size:12px;padding:8px 12px;border-radius:4px;background:var(--panel);border:1px solid var(--border-soft);}
+.avail-row svg{width:14px;height:14px;flex:none;}
+.avail-row.yes svg{color:var(--accent);}
+.avail-row.oa svg{color:var(--oa);}
+.avail-row.no svg{color:var(--text-faint);}
+.avail-row .lbl{color:var(--text);flex:1;font-weight:500;}
+.avail-row.no .lbl{color:var(--text-faint);font-weight:400;}
+.ident-box{display:flex;flex-direction:column;gap:6px;}
+.ident-row{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--border-soft);border-radius:4px;padding:8px 12px;font-size:12px;}
+.ident-row .k{font-family:var(--mono);color:var(--accent);font-weight:600;flex:none;font-size:0.8125rem;}
+.ident-row .v{color:var(--text);word-break:break-all;flex:1;font-feature-settings:var(--tnum);}
+.ident-row .v a{color:var(--text);text-decoration:none;}
+.ident-row .v a:hover{color:var(--accent-strong);text-decoration:underline;}
+.copybtn{background:none;border:none;color:var(--text-faint);cursor:pointer;padding:2px;flex:none;display:flex;}
+.copybtn svg{width:13px;height:13px;}
+.copybtn:hover{color:var(--accent);}
+.copybtn.done{color:var(--oa);}
+.d-preview-meta{font-size:11px;color:var(--accent);font-weight:600;text-transform:none;letter-spacing:0;}
+.d-cover-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:30px 12px;color:var(--text-faint);font-size:11.5px;text-align:center;border-radius:8px;border:1px solid var(--border-soft);background:var(--bg);}
+.d-cover-empty svg{width:26px;height:26px;opacity:.5;}
+.fig-viewer{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--border-soft);background:var(--code);cursor:zoom-in;}
+.fig-viewer img{display:block;width:100%;height:auto;max-height:340px;object-fit:contain;margin:0 auto;background:var(--code);}
+.fig-nav{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:rgba(17,17,19,.7);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.fig-nav svg{width:15px;height:15px;}
+.fig-nav.prev{left:8px;}
+.fig-nav.next{right:8px;transform:translateY(-50%) rotate(180deg);}
+.fig-nav:hover{background:rgba(17,17,19,.9);border-color:var(--border-hover);}
+.fig-counter{position:absolute;bottom:8px;right:8px;font-size:10.5px;font-weight:600;color:var(--text);background:rgba(17,17,19,.7);border-radius:4px;padding:2px 7px;font-feature-settings:var(--tnum);}
+.fig-thumbs{display:flex;gap:6px;margin-top:8px;overflow-x:auto;padding-bottom:2px;}
+.fig-thumb{width:52px;height:52px;object-fit:cover;border-radius:4px;border:1.5px solid var(--border-soft);cursor:pointer;flex:none;opacity:.6;}
+.fig-thumb:hover{opacity:.9;}
+.fig-thumb.active{opacity:1;border-color:var(--accent);}
+.fig-lightbox{position:fixed;inset:0;background:rgba(10,10,11,.88);display:none;align-items:center;justify-content:center;z-index:20;padding:40px;}
+.fig-lightbox.open{display:flex;}
+.fig-lightbox img{max-width:100%;max-height:100%;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.fig-lightbox-close{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:50%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.fig-lightbox-close svg{width:16px;height:16px;}
+.d-tb-dot{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--accent);}
+.d-tb{position:relative;}
+.notes-area{width:100%;min-height:260px;resize:vertical;background:var(--panel);border:1px solid var(--border-soft);border-radius:8px;padding:14px;color:var(--text);font-family:inherit;font-size:0.8125rem;line-height:1.6;outline:none;}
+.notes-area:focus{border-color:var(--border-hover);}
+.notes-area::placeholder{color:var(--text-faint);}
+.notes-savebar{display:flex;justify-content:flex-end;margin-top:12px;}
+.notes-saved{font-size:11.5px;font-weight:600;color:var(--text-faint);background:var(--panel-2);border-radius:4px;padding:5px 12px;}
+.pdf-card{display:flex;gap:12px;background:var(--panel);border:1px solid var(--border-soft);border-radius:8px;padding:12px;}
+.pdf-card-icon{width:44px;height:44px;border-radius:6px;background:var(--pdf-bg);color:var(--pdf);display:flex;align-items:center;justify-content:center;flex:none;}
+.pdf-card-icon svg{width:22px;height:22px;}
+.pdf-card-body{flex:1;min-width:0;}
+.pdf-card-row{margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;}
+.pdf-btn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:4px;padding:6px 12px;cursor:pointer;text-decoration:none;font-family:inherit;}
+.pdf-btn svg{width:14px;height:14px;}
+.pdf-btn.primary{background:var(--accent);color:#111113;}
+.pdf-btn.primary:hover{background:var(--accent-hover);}
+.pdf-btn:not(.primary){background:var(--raised);border:1px solid var(--border);color:var(--text);}
+.pdf-btn:not(.primary):hover{border-color:var(--accent);}
+.pdf-btn:disabled{opacity:.6;cursor:default;}
+.pdf-card-name{font-size:12.5px;color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pdf-card-meta{font-size:11px;color:var(--text-faint);margin-top:2px;font-feature-settings:var(--tnum);}
+.pdf-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border-hover);border-radius:8px;padding:28px 16px;cursor:pointer;text-align:center;color:var(--text-faint);}
+.pdf-drop:hover,.pdf-drop.drag{border-color:var(--accent);color:var(--text-dim);background:var(--accent-bg);}
+.pdf-drop svg{width:22px;height:22px;}
+.pdf-drop-title{font-size:12.5px;color:var(--text);font-weight:500;}
+.pdf-drop-sub{font-size:11px;line-height:1.5;max-width:280px;}
+.pdf-drop-sub code{font-family:var(--mono);background:var(--code);border-radius:3px;padding:1px 4px;}
+#pdfPreviewSlot .pdf-card{margin-top:12px;}
+.export-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);border:none;border-radius:4px;padding:8px 12px;font-size:12.5px;font-weight:600;color:#111113;cursor:pointer;font-family:inherit;}
+.export-btn:hover{background:var(--accent-hover);}
+.export-btn:active{background:var(--accent-active);}
+.export-btn svg{width:14px;height:14px;}
+.detail-empty{color:var(--text-faint);font-size:12.5px;padding:60px 24px;text-align:center;line-height:1.6;}
+.detail-close{display:none;}
+
+@media (max-width:900px){
+  .sidebar{display:none;}
+  .detail{position:fixed;inset:0;width:auto;z-index:5;display:none;}
+  .detail.open{display:flex;}
+  .d-toolbar{padding-top:calc(10px + env(safe-area-inset-top,0px));}
+  .t-authors,.t-journal{display:none;}
+  .t-title{max-width:none;}
+  .detail-close{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--accent);font-size:12.5px;cursor:pointer;font-family:inherit;margin-right:auto;}
+  .rail{display:none;}
+  .gsearch .kbd{display:none;}
+  .syncpill{display:none;}
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+
+<div class="app">
+  <div class="appbar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="applogo">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+      <div><div class="name">paper-rag</div><div class="ver">Library</div></div>
+    </div>
+    <div class="syncpill"><span class="sdot"></span><span id="sync-label">Synced</span></div>
+    <div class="gsearch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="q" type="text" placeholder="Search references, authors, DOIs, PMIDs…">
+      <span class="kbd">&#8984;K</span>
+    </div>
+  </div>
+
+  <div class="body-wrap">
+    <div class="rail">
+      <div class="rail-btn active" title="Library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+      <div class="rail-btn" title="Notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg></div>
+      <div class="rail-btn" title="Discover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="sb-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Library</div>
+      <div>
+        <div id="sb-availability"></div>
+      </div>
+      <div>
+        <div class="sb-group-label">Tags<span class="tag-add" title="Filter by tag">+</span></div>
+        <div class="tag-list" id="sb-keywords"></div>
+      </div>
+      <div class="sb-storage">
+        <div class="row"><span>Local library</span><span id="stor-total"></span></div>
+        <div class="bar"><div class="fill" id="stor-fill"></div></div>
+        <div class="row" style="margin-top:5px;"><span id="stor-papers"></span><span id="stor-chroma"></span></div>
+      </div>
+    </div>
+
+    <div class="main-col">
+      <div class="toolbar">
+        <div class="lsearch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input id="q2" type="text" placeholder="Search 'My Papers'…">
+        </div>
+        <div class="tb-count" id="row-count"></div>
+      </div>
+      <div class="work">
+        <div class="list-pane">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th class="col-cb"><span class="cb" id="cb-all" title="Select all"></span></th>
+                  <th class="col-data">Data</th>
+                  <th class="sortable" data-sort="authors">Authors<span class="arrow"></span></th>
+                  <th class="sortable" data-sort="last_author">Last author<span class="arrow"></span></th>
+                  <th class="sortable" data-sort="title">Title<span class="arrow"></span></th>
+                  <th class="sortable" data-sort="journal">Journal<span class="arrow"></span></th>
+                  <th class="sortable" data-sort="year">Year<span class="arrow"></span></th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <div class="statusbar" id="statusbar"></div>
+        </div>
+        <div class="detail" id="detail"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fig-lightbox" id="figLightbox">
+  <div class="fig-lightbox-close" id="figLightboxClose"></div>
+  <img id="figLightboxImg" src="" alt="Enlarged figure">
+</div>
+
+<script>
+const PAPERS = __PAPERS_JSON__;
+const STORAGE = __STORAGE_JSON__;
+const ATTACH_PORT = __ATTACH_PORT__; // null unless generated with `dashboard.py --serve`
+const ATTACH_TOKEN = __ATTACH_TOKEN__; // per-run secret; server rejects writes without it
+
+const svg = {
+  clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>',
+  fig: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>',
+  dash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h1.2a1.3 1.3 0 000-2.6H9v5M13.4 12.4v5M13.4 14.4h1.4M17.2 12.4v5M17.2 14.2h1.3"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
+  cite: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c3-1 5-3 5-8H4V5h8v8c0 6-3 8-9 8zM14 21c3-1 5-3 5-8h-4V5h8v8c0 6-3 8-9 8z" transform="scale(.8) translate(3 1)"/></svg>',
+  dl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg>',
+  zoom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>',
+};
+
+let state = { avail: 'all', keyword: null, checked: new Set(), query: '', selected: null,
+              sortKey: 'year', sortDir: -1, absExpanded: false, authorsExpanded: false, detailTab: 'info', figureIndex: 0 };
+
+const availDefs = [
+  { key: 'all', label: 'All papers', icon: svg.doc, test: () => true },
+  { key: 'fulltext', label: 'Full text', icon: svg.clip, test: p => p.has_fulltext },
+  { key: 'metadata', label: 'Metadata only', icon: svg.dash, test: p => !p.has_fulltext },
+  { key: 'figures', label: 'Has figures', icon: svg.fig, test: p => p.n_figures > 0 },
+  { key: 'pdf', label: 'Has PDF', icon: svg.pdf, test: p => p.has_pdf },
+];
+
+function topKeywords(n){
+  const m = new Map();
+  PAPERS.forEach(p => (p.keywords||[]).forEach(k => m.set(k, (m.get(k)||0)+1)));
+  return [...m.entries()].filter(([,c]) => c > 1).sort((a,b) => b[1]-a[1]).slice(0,n).map(([k])=>k);
+}
+
+function matchesQuery(p, q){
+  if(!q) return true;
+  const hay = [p.title, p.authors, (p.authors_full||[]).map(a=>a.family+' '+a.given).join(' '),
+               p.journal, p.year, p.pmid, p.doi, (p.keywords||[]).join(' ')].join(' ').toLowerCase();
+  return hay.includes(q.toLowerCase());
+}
+
+function visiblePapers(){
+  const ad = availDefs.find(f => f.key === state.avail);
+  const list = PAPERS.filter(p =>
+    ad.test(p) &&
+    (!state.keyword || (p.keywords||[]).includes(state.keyword)) &&
+    matchesQuery(p, state.query)
+  );
+  const k = state.sortKey, dir = state.sortDir;
+  list.sort((a, b) => dir * String(a[k] ?? '').localeCompare(String(b[k] ?? ''), undefined, { numeric: true, sensitivity: 'base' }));
+  return list;
+}
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderSidebar(){
+  const av = document.getElementById('sb-availability');
+  av.innerHTML = availDefs.map(f => {
+    const n = PAPERS.filter(f.test).length;
+    const active = state.avail === f.key ? ' active' : '';
+    return `<div class="sb-item${active}" data-key="${f.key}">${f.icon}<span class="n">${f.label}</span><span class="c">${n}</span></div>`;
+  }).join('');
+  av.querySelectorAll('.sb-item').forEach(node => {
+    node.addEventListener('click', () => { state.avail = node.dataset.key; renderAll(); });
+  });
+
+  const kw = document.getElementById('sb-keywords');
+  const tagColors = ['#f5a35c','#7adff9','#8bc78e','#b79aef','#f0899a','#e0c56f'];
+  kw.innerHTML = topKeywords(8).map((k, i) => {
+    const active = state.keyword === k ? ' active' : '';
+    return `<div class="tag-row${active}" data-kw="${escapeHtml(k)}"><span class="dot" style="background:${tagColors[i % tagColors.length]}"></span><span class="n">${escapeHtml(k)}</span></div>`;
+  }).join('');
+  kw.querySelectorAll('.tag-row').forEach(node => {
+    node.addEventListener('click', () => {
+      state.keyword = state.keyword === node.dataset.kw ? null : node.dataset.kw;
+      renderAll();
+    });
+  });
+}
+
+function bindSortHeaders(){
+  document.querySelectorAll('thead th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      if(state.sortKey === k) state.sortDir = -state.sortDir;
+      else { state.sortKey = k; state.sortDir = 1; }
+      renderRows();
+    });
+  });
+}
+
+function updateSortArrows(){
+  document.querySelectorAll('thead th.sortable').forEach(th => {
+    const on = th.dataset.sort === state.sortKey;
+    th.classList.toggle('sorted', on);
+    th.querySelector('.arrow').textContent = on ? (state.sortDir === 1 ? '↑' : '↓') : '';
+  });
+}
+
+function renderRows(){
+  updateSortArrows();
+  const tbody = document.getElementById('rows');
+  const list = visiblePapers();
+  document.getElementById('row-count').textContent = `${list.length} of ${PAPERS.length} references`;
+  const nFT = PAPERS.filter(p=>p.has_fulltext).length;
+  const nFig = PAPERS.filter(p=>p.n_figures>0).length;
+  const nChecked = state.checked.size;
+  const sb = document.getElementById('statusbar');
+  if(nChecked > 0){
+    sb.innerHTML = `<div class="selbar"><span class="selcount">${nChecked} selected</span>
+      <button id="sel-bib">Copy BibTeX (${nChecked})</button>
+      <button id="sel-clear" class="quiet">Clear selection</button></div>`;
+    sb.querySelector('#sel-bib').addEventListener('click', e => {
+      const entries = PAPERS.filter(p => state.checked.has(p.doc_key)).map(bibtex).join('\n\n');
+      copyToClipboard(entries, e.currentTarget, 'Copied');
+    });
+    sb.querySelector('#sel-clear').addEventListener('click', () => { state.checked.clear(); renderRows(); });
+  } else {
+    sb.innerHTML = `Showing <b>${list.length}</b> references&ensp;&middot;&ensp;<b>${nFT}</b> with full text&ensp;&middot;&ensp;<b>${nFig}</b> with figures&ensp;&middot;&ensp;<b>${PAPERS.filter(p=>p.has_pdf).length}</b> with PDF`;
+  }
+  const master = document.getElementById('cb-all');
+  const visChecked = list.filter(p => state.checked.has(p.doc_key)).length;
+  master.classList.toggle('on', list.length > 0 && visChecked === list.length);
+  master.classList.toggle('half', visChecked > 0 && visChecked < list.length);
+  if(list.length === 0){
+    tbody.innerHTML = `<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--text-faint);">No references match. Clear a filter or search term.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(p => {
+    const sel = p.doc_key === state.selected ? ' sel' : '';
+    return `<tr class="row${sel}" data-key="${p.doc_key}">
+      <td class="col-cb"><span class="cb${state.checked.has(p.doc_key)?' on':''}" data-cb="${p.doc_key}"></span></td>
+      <td class="col-data">
+        <div class="data-icons">
+          <span class="di ${p.has_fulltext?'full':'off'}" title="${p.has_fulltext?'Full text ingested':'No full text'}">${svg.clip}</span>
+          <span class="di ${p.n_figures>0?'fig':'off'}" title="${p.n_figures>0? p.n_figures+' figures':'No figures'}">${svg.fig}</span>
+          <span class="di ${p.has_pdf?'pdf':'off'}" title="${p.has_pdf?'Source PDF stored':'No PDF stored'}">${svg.pdf}</span>
+        </div>
+      </td>
+      <td class="t-authors">${escapeHtml(p.authors)}</td>
+      <td class="t-authors">${escapeHtml(p.last_author)}</td>
+      <td class="t-title"><div class="ttl">${escapeHtml(p.title)}</div></td>
+      <td class="t-journal">${escapeHtml(p.journal || '')}</td>
+      <td class="t-year">${escapeHtml(p.year || '')}</td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('.cb[data-cb]').forEach(cb => {
+    cb.addEventListener('click', e => {
+      e.stopPropagation();
+      const k = cb.dataset.cb;
+      if(state.checked.has(k)) state.checked.delete(k); else state.checked.add(k);
+      renderRows();
+    });
+  });
+  tbody.querySelectorAll('tr.row').forEach(row => {
+    row.addEventListener('click', () => {
+      const key = row.dataset.key;
+      state.selected = state.selected === key ? null : key;
+      state.absExpanded = false; state.authorsExpanded = false; state.detailTab = 'info'; state.figureIndex = 0;
+      renderRows(); renderDetail();
+      const detailEl = document.getElementById('detail');
+      if(window.matchMedia('(max-width:900px)').matches){
+        detailEl.classList.toggle('open', !!state.selected);
+      }
+    });
+  });
+}
+
+function bibtex(p){
+  const authors = (p.authors_full || []).map(a => `${a.family}, ${a.given}`).join(' and ');
+  const key = ((p.authors_full?.[0]?.family || p.doc_key) + (p.year || '')).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const fields = [
+    ['author', authors],
+    ['title', p.title ? p.title.replace(/\.$/, '') : ''],
+    ['journal', p.journal],
+    ['year', p.year],
+    ['volume', p.volume],
+    ['number', p.issue],
+    ['pages', p.pages],
+    ['doi', p.doi],
+    ['pmid', p.pmid],
+  ].filter(([, v]) => v);
+  return `@article{${key},\n${fields.map(([k, v]) => `  ${k} = {${v}}`).join(',\n')}\n}`;
+}
+
+function copyToClipboard(text, btn, doneLabel){
+  const orig = btn.innerHTML;
+  const done = () => { btn.classList.add('done'); btn.innerHTML = doneLabel || svg.check; setTimeout(()=>{btn.classList.remove('done'); btn.innerHTML = orig;}, 1400); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); done();
+  }catch(e){}
+}
+
+function loadNote(docKey){
+  try { return localStorage.getItem('paper-rag-note:' + docKey) || ''; } catch(e){ return ''; }
+}
+function saveNote(docKey, text){
+  try {
+    if(text) localStorage.setItem('paper-rag-note:' + docKey, text);
+    else localStorage.removeItem('paper-rag-note:' + docKey);
+  } catch(e){}
+}
+
+function identRow(k, val, href){
+  const v = href ? `<a href="${href}" target="_blank" rel="noopener">${escapeHtml(val)}</a>` : escapeHtml(val);
+  return `<div class="ident-row"><span class="k">${k}:</span><span class="v">${v}</span><button class="copybtn" data-copy="${escapeHtml(val)}" title="Copy">${svg.copy}</button></div>`;
+}
+
+function renderDetail(){
+  const el = document.getElementById('detail');
+  const p = PAPERS.find(x => x.doc_key === state.selected);
+  el.classList.toggle('expanded', !!p);
+  if(!p){ el.innerHTML = '<div class="detail-empty">Select a reference to see its data, abstract and identifiers.</div>'; return; }
+
+  const sourceLabel = p.has_pdf ? 'PDF' : (p.has_xml ? 'JATS XML' : (p.has_html ? 'HTML' : null));
+  const isOA = !!p.pmcid;
+  const authorList = (p.authors_full || []);
+  const shown = state.authorsExpanded ? authorList : authorList.slice(0, 5);
+  const authorsHtml = shown.map(a => `${escapeHtml(a.family)}, ${escapeHtml(a.given)}`).join(' ; ');
+  const needsMore = authorList.length > 5;
+
+  const figures = p.figures && p.figures.length ? p.figures : (p.cover ? [p.cover] : []);
+  if(state.figureIndex >= figures.length) state.figureIndex = 0;
+
+  const figureGalleryHtml = figures.length ? `
+    <div class="fig-viewer" id="figviewer">
+      <img src="${escapeHtml(figures[state.figureIndex])}" alt="Figure ${state.figureIndex + 1} of ${figures.length}">
+      ${figures.length > 1 ? `
+        <button class="fig-nav prev" id="figprev" title="Previous figure">${svg.chevron}</button>
+        <button class="fig-nav next" id="fignext" title="Next figure">${svg.chevron}</button>
+        <span class="fig-counter">${state.figureIndex + 1} / ${figures.length}</span>
+      ` : ''}
+    </div>
+    ${figures.length > 1 ? `
+    <div class="fig-thumbs">
+      ${figures.map((f, i) => `<img class="fig-thumb${i===state.figureIndex?' active':''}" data-i="${i}" src="${escapeHtml(f)}" alt="Figure ${i+1} thumbnail">`).join('')}
+    </div>` : ''}
+  ` : `<div class="d-cover-empty">${svg.doc}<span>${p.has_fulltext ? 'No figures extracted from source' : 'Metadata-only ingest — no source document stored'}</span></div>`;
+
+  const absLong = (p.abstract || '').length > 320;
+
+  const tab = state.detailTab || 'info';
+
+  const infoTab = `
+      <div class="d-kickrow">
+        <span class="d-kicker">${escapeHtml(p.journal || '')} ${escapeHtml(p.year || '')}</span>
+        <span class="oa-chip${isOA?'':' closed'}">${isOA ? 'Open access' : 'Closed access'}</span>
+      </div>
+      <h2 class="d-title">${escapeHtml((p.title||'').replace(/\.$/,''))}</h2>
+      <div class="d-authors">${authorsHtml}</div>
+      ${needsMore ? `<button class="d-more" id="authmore">${state.authorsExpanded ? 'less' : `more (${authorList.length} authors)`} &#9662;</button>` : '<div style="margin-bottom:8px;"></div>'}
+
+      ${p.abstract ? `
+      <div class="d-box">
+        <div class="d-box-label">
+          <span>Abstract</span>
+          ${absLong ? `<button class="d-expand-top" id="absmore">${state.absExpanded ? 'Collapse ▴' : 'Expand ▾'}</button>` : ''}
+        </div>
+        <div class="d-abstract${absLong && !state.absExpanded ? ' clamped' : ''}${absLong && state.absExpanded ? ' scroll' : ''}" id="abs">${escapeHtml(p.abstract)}</div>
+      </div>` : ''}
+
+      ${p.keywords && p.keywords.length ? `
+      <div class="d-section">
+        <div class="d-sec-label">Tags</div>
+        <div class="tag-chips">${p.keywords.slice(0,10).map(k=>`<span class="tag-chip">${escapeHtml(k)}</span>`).join('')}</div>
+      </div>` : ''}
+
+      <div class="d-section">
+        <div class="d-sec-label">Data in library</div>
+        <div class="avail-list">
+          <div class="avail-row ${p.has_fulltext?'yes':'no'}">${p.has_fulltext?svg.check:svg.dash}<span class="lbl">${p.has_fulltext ? `Full text ingested (${sourceLabel})` : 'No full text — abstract and metadata only'}</span></div>
+          <div class="avail-row ${p.has_pdf?'yes':'no'}">${p.has_pdf?svg.check:svg.dash}<span class="lbl">${p.has_pdf ? 'Source PDF stored' : 'No PDF stored'}</span></div>
+          <div class="avail-row ${p.n_figures>0?'oa':'no'}">${p.n_figures>0?svg.check:svg.dash}<span class="lbl">${p.n_figures>0 ? `${p.n_figures} figure${p.n_figures===1?'':'s'} extracted` : 'No figures extracted'}</span></div>
+          <div class="avail-row ${p.has_embedding?'yes':'no'}">${p.has_embedding?svg.check:svg.dash}<span class="lbl">${p.has_embedding ? `Vector embedded (${p.n_chunks} chunk${p.n_chunks===1?'':'s'} indexed)` : 'Not embedded — excluded from semantic search'}</span></div>
+        </div>
+      </div>
+  `;
+
+  const citeTab = `
+      <div class="d-kickrow">
+        <span class="d-kicker">Cite this reference</span>
+      </div>
+      <div class="d-section">
+        <div class="d-sec-label">Identifiers</div>
+        <div class="ident-box">
+          ${p.doi ? identRow('doi', p.doi, `https://doi.org/${encodeURIComponent(p.doi)}`) : ''}
+          ${p.pmid ? identRow('pmid', p.pmid, `https://pubmed.ncbi.nlm.nih.gov/${encodeURIComponent(p.pmid)}/`) : ''}
+          ${p.pmcid ? identRow('pmcid', p.pmcid, `https://www.ncbi.nlm.nih.gov/pmc/articles/${encodeURIComponent(p.pmcid)}/`) : ''}
+          <div class="ident-row"><span class="k">bibtex:</span><span class="v">Citation entry</span><button class="copybtn" id="identbib" title="Copy BibTeX">${svg.copy}</button></div>
+        </div>
+      </div>
+      <button class="export-btn" id="copybib">${svg.dl}<span>Copy BibTeX citation</span></button>
+  `;
+
+  const previewTab = `
+      <div class="d-kickrow">
+        <span class="d-kicker">Document preview</span>
+        <span class="d-preview-meta">${p.n_figures>0 ? `${p.n_figures} figure${p.n_figures===1?'':'s'}` : ''}${sourceLabel ? `${p.n_figures>0?' • ':''}${sourceLabel}` : ''}</span>
+      </div>
+      <div class="d-section">${figureGalleryHtml}</div>
+  `;
+
+  const savedNote = loadNote(p.doc_key);
+  const notesTab = `
+      <textarea class="notes-area" id="notesArea" placeholder="Write your note here...">${escapeHtml(savedNote)}</textarea>
+      <div class="notes-savebar">
+        <span class="notes-saved" id="notesSaved">${savedNote ? 'Saved' : 'Not saved'}</span>
+      </div>
+  `;
+
+  const pdfLocalHref = `../papers/${encodeURIComponent(p.doc_key)}/source.pdf`;
+  const pdfTab = p.has_pdf ? `
+      <div class="d-kickrow">
+        <span class="d-kicker">PDF attachment</span>
+      </div>
+      <div class="d-section">
+        <div class="pdf-card">
+          <div class="pdf-card-icon">${svg.pdf}</div>
+          <div class="pdf-card-body">
+            <div class="pdf-card-row">
+              <a class="pdf-btn primary" href="${escapeHtml(pdfLocalHref)}" target="_blank" rel="noopener">${svg.doc}<span>View PDF</span></a>
+            </div>
+            <div class="pdf-card-name">${escapeHtml(p.doc_key)}.pdf</div>
+            <div class="pdf-card-meta">${escapeHtml(p.pdf_size || '')}${p.pdf_pages ? ` • ${p.pdf_pages} page${p.pdf_pages===1?'':'s'}` : ''}</div>
+          </div>
+        </div>
+      </div>
+  ` : `
+      <div class="d-kickrow">
+        <span class="d-kicker">PDF attachment</span>
+      </div>
+      <div class="d-section">
+        <label class="pdf-drop" id="pdfDrop">
+          <input type="file" id="pdfInput" accept="application/pdf" hidden>
+          ${svg.upload}
+          <span class="pdf-drop-title">Drop a PDF here or click to add one</span>
+          <span class="pdf-drop-sub">${ATTACH_PORT
+            ? 'Saved straight into the library (no reingest, metadata untouched).'
+            : `Session only — not saved to the library. To store it permanently, run <code>ingest ${escapeHtml(p.doc_key)}.pdf</code>, or run the dashboard with <code>--serve</code> to enable saving from here.`}</span>
+        </label>
+        <div id="pdfPreviewSlot"></div>
+      </div>
+  `;
+
+  el.innerHTML = `
+    <div class="d-toolbar">
+      <button class="detail-close" id="dclose">&larr; Library</button>
+      <div class="d-tb${tab==='info'?' active':''}" data-tab="info" title="Details">${svg.info}</div>
+      <div class="d-tb${tab==='notes'?' active':''}" data-tab="notes" title="Notes">${svg.pencil}</div>
+      <div class="d-tb${tab==='cite'?' active':''}" data-tab="cite" title="Cite">${svg.share}</div>
+      <div class="d-tb${tab==='pdf'?' active':''}" data-tab="pdf" title="PDF attachment">${svg.clip}${p.has_pdf ? '<span class="d-tb-dot"></span>' : ''}</div>
+      <div class="d-tb${tab==='preview'?' active':''}" data-tab="preview" title="Figures">${svg.fig}</div>
+      <div class="d-tb d-tb-close" id="dclosex" title="Close panel">${svg.close}</div>
+    </div>
+    <div class="detail-body">
+      ${tab === 'cite' ? citeTab : tab === 'preview' ? previewTab : tab === 'notes' ? notesTab : tab === 'pdf' ? pdfTab : infoTab}
+    </div>
+  `;
+
+  el.querySelectorAll('.d-tb[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => { state.detailTab = btn.dataset.tab; renderDetail(); });
+  });
+  el.querySelectorAll('.copybtn[data-copy]').forEach(b => {
+    b.addEventListener('click', () => copyToClipboard(b.dataset.copy, b));
+  });
+  const bibBtn = document.getElementById('copybib');
+  if(bibBtn) bibBtn.addEventListener('click', () => {
+    copyToClipboard(bibtex(p), bibBtn, `${svg.check}<span>Copied to clipboard</span>`);
+  });
+  const identBibBtn = document.getElementById('identbib');
+  if(identBibBtn) identBibBtn.addEventListener('click', () => copyToClipboard(bibtex(p), identBibBtn));
+  const absBtn = document.getElementById('absmore');
+  if(absBtn) absBtn.addEventListener('click', () => { state.absExpanded = !state.absExpanded; renderDetail(); });
+  const authBtn = document.getElementById('authmore');
+  if(authBtn) authBtn.addEventListener('click', () => { state.authorsExpanded = !state.authorsExpanded; renderDetail(); });
+  const closeBtn = document.getElementById('dclose');
+  if(closeBtn) closeBtn.addEventListener('click', () => { el.classList.remove('open'); });
+  const closeXBtn = document.getElementById('dclosex');
+  if(closeXBtn) closeXBtn.addEventListener('click', () => {
+    state.selected = null;
+    el.classList.remove('open');
+    renderRows(); renderDetail();
+  });
+
+  const figViewer = document.getElementById('figviewer');
+  if(figViewer) figViewer.addEventListener('click', e => {
+    if(e.target.closest('.fig-nav')) return;
+    openLightbox(figures[state.figureIndex]);
+  });
+  const figPrev = document.getElementById('figprev');
+  if(figPrev) figPrev.addEventListener('click', () => { state.figureIndex = (state.figureIndex - 1 + figures.length) % figures.length; renderDetail(); });
+  const figNext = document.getElementById('fignext');
+  if(figNext) figNext.addEventListener('click', () => { state.figureIndex = (state.figureIndex + 1) % figures.length; renderDetail(); });
+  el.querySelectorAll('.fig-thumb[data-i]').forEach(thumb => {
+    thumb.addEventListener('click', () => { state.figureIndex = Number(thumb.dataset.i); renderDetail(); });
+  });
+
+  const notesArea = document.getElementById('notesArea');
+  if(notesArea){
+    let saveTimer;
+    const savedLbl = document.getElementById('notesSaved');
+    notesArea.addEventListener('input', () => {
+      if(savedLbl) savedLbl.textContent = 'Saving…';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        saveNote(p.doc_key, notesArea.value);
+        if(savedLbl) savedLbl.textContent = notesArea.value ? 'Saved' : 'Not saved';
+      }, 500);
+    });
+  }
+
+  const pdfDrop = document.getElementById('pdfDrop');
+  const pdfInput = document.getElementById('pdfInput');
+  if(pdfDrop && pdfInput){
+    const saveToLibrary = (file, btn) => {
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      fetch(`http://127.0.0.1:${ATTACH_PORT}/attach/${encodeURIComponent(p.doc_key)}`, {
+        method: 'POST',
+        headers: { 'X-Attach-Token': ATTACH_TOKEN },
+        body: file,
+      }).then(async res => {
+        const body = await res.json().catch(() => ({}));
+        if(!res.ok) throw new Error(body.hint || body.error || `HTTP ${res.status}`);
+        p.has_pdf = true;
+        p.pdf_size = body.pdf_size;
+        p.pdf_pages = body.pdf_pages;
+        renderRows();
+        renderDetail();
+      }).catch(err => {
+        btn.disabled = false;
+        btn.textContent = 'Save to library';
+        const errEl = document.getElementById('pdfSaveErr');
+        if(errEl) errEl.textContent = `Could not save: ${err.message}. Is \`dashboard.py --serve\` running on port ${ATTACH_PORT}?`;
+      });
+    };
+    const showLocalPdf = file => {
+      if(!file || file.type !== 'application/pdf') return;
+      const url = URL.createObjectURL(file);
+      const sizeMb = (file.size / (1024*1024)).toFixed(1) + ' MB';
+      document.getElementById('pdfPreviewSlot').innerHTML = `
+        <div class="pdf-card">
+          <div class="pdf-card-icon">${svg.pdf}</div>
+          <div class="pdf-card-body">
+            <div class="pdf-card-row">
+              <a class="pdf-btn primary" href="${url}" target="_blank" rel="noopener">${svg.doc}<span>View PDF</span></a>
+              ${ATTACH_PORT ? `<button class="pdf-btn" id="pdfSaveBtn">Save to library</button>` : ''}
+            </div>
+            <div class="pdf-card-name">${escapeHtml(file.name)}</div>
+            <div class="pdf-card-meta">${sizeMb}${ATTACH_PORT ? '' : ' • this session only'}</div>
+            ${ATTACH_PORT ? `<div class="pdf-card-meta" id="pdfSaveErr"></div>` : ''}
+          </div>
+        </div>`;
+      if(ATTACH_PORT){
+        document.getElementById('pdfSaveBtn').addEventListener('click', () => saveToLibrary(file, document.getElementById('pdfSaveBtn')));
+      }
+    };
+    pdfInput.addEventListener('change', () => showLocalPdf(pdfInput.files[0]));
+    pdfDrop.addEventListener('dragover', e => { e.preventDefault(); pdfDrop.classList.add('drag'); });
+    pdfDrop.addEventListener('dragleave', () => pdfDrop.classList.remove('drag'));
+    pdfDrop.addEventListener('drop', e => {
+      e.preventDefault(); pdfDrop.classList.remove('drag');
+      showLocalPdf(e.dataTransfer.files[0]);
+    });
+  }
+}
+
+function openLightbox(src){
+  document.getElementById('figLightboxImg').src = src;
+  document.getElementById('figLightbox').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('figLightbox').classList.remove('open');
+}
+
+function renderAll(){
+  renderSidebar();
+  renderRows();
+  renderDetail();
+}
+
+document.getElementById('sync-label').textContent = `${PAPERS.length} papers indexed`;
+['q','q2'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    state.query = e.target.value;
+    const other = id === 'q' ? 'q2' : 'q';
+    document.getElementById(other).value = e.target.value;
+    renderRows();
+  });
+});
+document.addEventListener('keydown', e => {
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); document.getElementById('q').focus(); }
+  if(e.key === 'Escape') closeLightbox();
+});
+
+document.getElementById('figLightboxClose').innerHTML = svg.close;
+document.getElementById('figLightbox').addEventListener('click', e => {
+  if(e.target.id === 'figLightbox' || e.target.id === 'figLightboxClose') closeLightbox();
+});
+
+bindSortHeaders();
+document.getElementById('cb-all').addEventListener('click', () => {
+  const list = visiblePapers();
+  const allOn = list.length > 0 && list.every(p => state.checked.has(p.doc_key));
+  if(allOn) list.forEach(p => state.checked.delete(p.doc_key));
+  else list.forEach(p => state.checked.add(p.doc_key));
+  renderRows();
+});
+document.getElementById('stor-total').textContent = STORAGE.total;
+document.getElementById('stor-fill').style.width = STORAGE.fill_pct + '%';
+document.getElementById('stor-papers').textContent = 'papers ' + STORAGE.papers;
+document.getElementById('stor-chroma').textContent = 'chroma ' + STORAGE.chroma;
+renderAll();
+</script>
+
+</body></html>

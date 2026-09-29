@@ -41,3 +41,6 @@ If the script reports the paper is already ingested, tell the user and suggest `
 to re-ingest. If it reports no open-access full text was found, tell the user it fell back
 to metadata-only ingest (abstract + citation metadata indexed, no full-text chunks) unless
 `--require-fulltext` was passed, in which case it aborted and a local file must be supplied.
+
+After a successful ingest, mention that `/paper-rag:dashboard` can be run to refresh the
+library dashboard with the new paper.
