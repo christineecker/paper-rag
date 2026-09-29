@@ -95,8 +95,10 @@ PDF/XML file yourself (`/paper-rag:ingest ./paper.pdf --pmid <pmid>`).
 
 ## Limitations
 
-- **Figure extraction is PDF-only.** JATS XML and HTML sources reference images without
-  embedded image data in docling's pipeline, so figures aren't extracted for those formats.
+- **Figure extraction needs embedded image data.** Works for PDF sources and for PMC
+  package JATS XML (fetched with its figure images alongside it via
+  `fetch_pmc_package`). Plain JATS XML or HTML fetched without local image files
+  reference images that aren't embedded, so figures aren't extracted for those.
 - **Non-OA PMIDs need a locally supplied file** for full-text ingestion (see above).
 - BM25 index rebuilds are wholesale (the full corpus is re-tokenized on every ingest), not
   incremental — fine at personal-library scale, not designed for very large corpora.
@@ -110,3 +112,28 @@ uv run pytest
 
 Tests mock all network calls (NCBI fetches) and the embedding function, so the suite runs
 without external network access or downloading embedding models.
+
+## Changelog
+
+### 2026-09-29
+- Add tag command; fix `--where` being ignored by lexical leg of hybrid search
+- Auto-resolve PMID for URL/local ingests; add remove command
+- Update `/paper-rag:ingest` docs for auto PMID resolution
+- Add CLAUDE.md: query Graphify graph first
+- Add VitePress docs site + docs-writer subagent
+- Fix deploy-docs trigger branch (main -> master)
+- Make docs icon background transparent
+- Add RAG home file/folder layout diagram to architecture docs
+- Add logo to README
+
+### 2026-09-28
+- Implement paper-rag plugin: ingestion, hybrid search, cite, mine
+- Add BibTeX export, author/year/journal filtering, section handling
+- Add implementation plan and architecture diagram
+- Resolve PMID via PubMed MCP before ingesting bare files; fix JATS bugs
+- Write concatenated full text to fulltext.txt on ingest
+- Fix mismatched figure captions in PDF ingest
+- Write full text as fulltext.md via docling's markdown export
+- Fix two more JATS/fetch bugs hit while ingesting new PMIDs
+- Switch PMC fetch to Cloud Service (S3); pull figures from PMC not PDF
+- Append figure links to fulltext.md

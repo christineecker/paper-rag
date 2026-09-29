@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 tests/.tmp/
 graphify-out/
+docs/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/

@@ -46,3 +46,136 @@ a.VPButton.brand:hover {
 div[class*='language-'] {
   background-color: #0d0d0f;
 }
+
+/* Smaller base font + tighter spacing so more content fits per page */
+.vp-doc {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.vp-doc h1 {
+  font-size: 26px;
+}
+.vp-doc h2 {
+  font-size: 20px;
+  margin-top: 32px;
+  padding-top: 16px;
+}
+.vp-doc h3 {
+  font-size: 17px;
+}
+.vp-doc p,
+.vp-doc ul,
+.vp-doc ol {
+  margin: 12px 0;
+}
+.vp-doc div[class*='language-'] {
+  font-size: 13px;
+}
+
+/* Wider content column, since text is smaller now */
+.VPDoc.has-aside .content-container {
+  max-width: 760px;
+}
+
+/* Reusable callout box (any page) */
+.vp-doc .note {
+  font-family: ui-monospace, Menlo, Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  font-size: 12.5px;
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-brand-soft);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 14px 0;
+  line-height: 1.6;
+}
+.vp-doc .note b { color: var(--vp-c-text-1); }
+
+/* Homepage "where to go" card grid + design-commitments table */
+.vp-doc .card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 16px 0 32px;
+}
+.vp-doc .card-grid .card {
+  display: block;
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  padding: 16px 18px;
+  color: var(--vp-c-text-1);
+  text-decoration: none !important;
+  transition: border-color 0.15s ease;
+}
+.vp-doc .card-grid .card:hover { border-color: var(--vp-c-brand-1); }
+.vp-doc .card-grid .card .kicker {
+  display: block;
+  font-family: ui-monospace, Menlo, Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-c-brand-1);
+  margin-bottom: 6px;
+}
+.vp-doc .card-grid .card .title { display: block; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.vp-doc .card-grid .card .details { display: block; font-size: 13px; color: var(--vp-c-text-2); line-height: 1.5; }
+
+.vp-doc .commitments td:first-child { white-space: nowrap; font-weight: 600; }
+
+/* Shared chrome for archify-style inline diagrams (any page, not just architecture.md) */
+.vp-doc figure.archify-figure {
+  margin: 16px 0;
+  background: var(--vp-c-bg-alt);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  padding: 20px 16px 16px;
+  overflow-x: auto;
+}
+.vp-doc figure.archify-figure svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+.vp-doc figure.archify-figure figcaption {
+  font-family: ui-monospace, Menlo, Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+  font-size: 12.5px;
+  color: var(--vp-c-text-2);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--vp-c-divider);
+  line-height: 1.5;
+}
+.vp-doc figure.archify-figure figcaption b { color: var(--vp-c-text-1); font-weight: 600; }
+.vp-doc figure.archify-figure text {
+  fill: currentColor;
+  font-family: ui-monospace, Menlo, Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+}
+
+.archify-diagram .c-grid { stroke: transparent; fill: none; }
+.archify-diagram .c-mask { fill: var(--vp-c-bg-alt); stroke: none; }
+.archify-diagram .c-lane { fill: rgba(245, 163, 92, 0.05); stroke: var(--vp-c-divider); stroke-dasharray: 6,6; }
+.archify-diagram .c-frontend, .archify-diagram .c-backend, .archify-diagram .c-cloud,
+.archify-diagram .c-security, .archify-diagram .c-messagebus { fill: transparent; stroke: var(--vp-c-text-1); }
+.archify-diagram .c-database { fill: var(--vp-c-brand-soft); stroke: var(--vp-c-brand-1); }
+.archify-diagram .c-external { fill: transparent; stroke: var(--vp-c-text-2); }
+.archify-diagram .t-primary { fill: var(--vp-c-text-1); }
+.archify-diagram .t-muted, .archify-diagram .t-dim { fill: var(--vp-c-text-2); }
+.archify-diagram .t-frontend, .archify-diagram .t-backend, .archify-diagram .t-cloud,
+.archify-diagram .t-security, .archify-diagram .t-messagebus { fill: var(--vp-c-text-1); }
+.archify-diagram .t-database { fill: var(--vp-c-brand-1); }
+.archify-diagram .t-external { fill: var(--vp-c-text-2); }
+.archify-diagram .a-default { stroke: var(--vp-c-text-2); fill: none; }
+.archify-diagram .a-emphasis { stroke: var(--vp-c-brand-1); fill: none; }
+.archify-diagram .a-security { stroke: var(--vp-c-text-2); fill: none; stroke-dasharray: 5,5; }
+.archify-diagram .a-dashed { stroke: var(--vp-c-text-2); fill: none; stroke-dasharray: 4,4; }
+.archify-diagram .m-default { fill: var(--vp-c-text-2); }
+.archify-diagram .m-emphasis { fill: var(--vp-c-brand-1); }
+.archify-diagram .m-security { fill: var(--vp-c-text-2); }
+.archify-diagram .m-dashed { fill: var(--vp-c-text-2); }
+.archify-diagram [data-node-id] { cursor: pointer; transition: opacity 0.18s ease, filter 0.18s ease; }
+.archify-diagram [data-node-id]:hover, .archify-diagram [data-node-id]:focus-visible {
+  filter: drop-shadow(0 0 7px var(--vp-c-brand-1));
+  outline: none;
+}

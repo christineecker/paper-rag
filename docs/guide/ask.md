@@ -19,6 +19,88 @@ Each query runs two retrieval legs and fuses their rankings:
 2. **Lexical leg** — a BM25 search over the same chunks' text, using the index built
    at ingest time.
 
+Dense and lexical live in two separate pools — different stores, built independently
+at ingest time, each queried on its own at ask time:
+
+<figure class="archify-figure">
+<div class="archify-diagram">
+<svg viewBox="0 0 1000 340" role="img" lang="en" aria-labelledby="ask-pools-title ask-pools-desc">
+  <title id="ask-pools-title">paper-rag's two knowledge pools</title>
+  <desc id="ask-pools-desc">ingest.py writes chunks into two separate pools, a Chroma dense-vector pool and a BM25 lexical pool. ask.py's question queries both pools independently. Each pool returns its own ranking, and RRF fuse combines them into one ranked chunk list.</desc>
+  <defs>
+    <marker id="ask-pools-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+    </marker>
+    <marker id="ask-pools-arrow-em" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+    </marker>
+  </defs>
+
+  <rect x="280" y="10" width="240" height="110" rx="10" class="c-lane" stroke-width="1"/>
+  <rect x="280" y="220" width="240" height="110" rx="10" class="c-lane" stroke-width="1"/>
+
+  <path d="M 150 58 L 220 58 L 220 65 L 300 65" class="a-dashed" stroke-width="1.4" marker-end="url(#ask-pools-arrow)"/>
+  <path d="M 150 58 L 185 58 L 185 275 L 300 275" class="a-dashed" stroke-width="1.4" marker-end="url(#ask-pools-arrow)"/>
+  <path d="M 150 282 L 215 282 L 215 65 L 300 65" class="a-default" stroke-width="1.4" marker-end="url(#ask-pools-arrow)"/>
+  <path d="M 150 282 L 300 275" class="a-default" stroke-width="1.4" marker-end="url(#ask-pools-arrow)"/>
+  <path d="M 500 65 L 570 65 L 570 152 L 640 152" class="a-emphasis" stroke-width="1.8" marker-end="url(#ask-pools-arrow-em)"/>
+  <path d="M 500 275 L 570 275 L 570 188 L 640 188" class="a-emphasis" stroke-width="1.8" marker-end="url(#ask-pools-arrow-em)"/>
+  <path d="M 780 170 L 830 170" class="a-default" stroke-width="1.4" marker-end="url(#ask-pools-arrow)"/>
+
+  <g><title>ingest.py · writes chunks into both pools</title>
+    <rect x="20" y="30" width="130" height="56" rx="6" class="c-mask"/>
+    <rect x="20" y="30" width="130" height="56" rx="6" class="c-frontend" stroke-width="1.5"/>
+    <text x="85" y="54" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">ingest.py</text>
+    <text x="85" y="70" class="t-muted" font-size="7" text-anchor="middle">writes chunks</text>
+  </g>
+  <g><title>ask.py · question</title>
+    <rect x="20" y="254" width="130" height="56" rx="6" class="c-mask"/>
+    <rect x="20" y="254" width="130" height="56" rx="6" class="c-frontend" stroke-width="1.5"/>
+    <text x="85" y="278" class="t-primary" font-size="10" font-weight="600" text-anchor="middle">ask.py</text>
+    <text x="85" y="294" class="t-muted" font-size="7" text-anchor="middle">question</text>
+  </g>
+  <g><title>dense pool · Chroma collection (vector embeddings)</title>
+    <rect x="300" y="30" width="200" height="70" rx="8" class="c-mask"/>
+    <rect x="300" y="30" width="200" height="70" rx="8" class="c-database" stroke-width="1.5"/>
+    <text x="400" y="59" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">dense pool</text>
+    <text x="400" y="76" class="t-muted" font-size="7.5" text-anchor="middle">Chroma · vector embeddings</text>
+  </g>
+  <g><title>lexical pool · BM25 inverted term index</title>
+    <rect x="300" y="240" width="200" height="70" rx="8" class="c-mask"/>
+    <rect x="300" y="240" width="200" height="70" rx="8" class="c-database" stroke-width="1.5"/>
+    <text x="400" y="269" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">lexical pool</text>
+    <text x="400" y="286" class="t-muted" font-size="7.5" text-anchor="middle">BM25 · inverted term index</text>
+  </g>
+  <g><title>RRF fuse · Σ 1/(k+rank)</title>
+    <rect x="640" y="135" width="140" height="70" rx="8" class="c-mask"/>
+    <rect x="640" y="135" width="140" height="70" rx="8" class="c-backend" stroke-width="1.5"/>
+    <text x="710" y="164" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RRF fuse</text>
+    <text x="710" y="181" class="t-muted" font-size="7.5" text-anchor="middle">Σ 1/(k+rank)</text>
+  </g>
+  <g><title>ranked chunks · top k, returned as JSON</title>
+    <rect x="830" y="135" width="150" height="70" rx="8" class="c-mask"/>
+    <rect x="830" y="135" width="150" height="70" rx="8" class="c-database" stroke-width="1.5"/>
+    <text x="905" y="164" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ranked chunks</text>
+    <text x="905" y="181" class="t-muted" font-size="7.5" text-anchor="middle">top k, as JSON</text>
+  </g>
+
+  <path d="M 20 322 L 54 322" class="a-dashed" stroke-width="1.4" marker-end="url(#ask-pools-arrow)"/>
+  <text x="63" y="325" class="t-muted" font-size="9" font-weight="500">write (ingest)</text>
+  <path d="M 200 322 L 234 322" class="a-default" stroke-width="1.4" marker-end="url(#ask-pools-arrow)"/>
+  <text x="243" y="325" class="t-muted" font-size="9" font-weight="500">read (query)</text>
+  <path d="M 350 322 L 384 322" class="a-emphasis" stroke-width="1.8" marker-end="url(#ask-pools-arrow-em)"/>
+  <text x="393" y="325" class="t-muted" font-size="9" font-weight="500">ranked result</text>
+</svg>
+</div>
+<figcaption>
+  <b>Dense pool</b> and <b>lexical pool</b> are independent stores — no shared index, no
+  cross-references. <code>ingest.py</code> writes new chunks into both; each ask writes
+  nothing, it only reads both, independently, then <b>RRF fuse</b> combines the two
+  rankings. If one pool is stale or missing (e.g. a deleted <code>bm25/</code> dir),
+  the other still answers on its own — see <code>--dense-only</code> / <code>--lexical-only</code> below.
+</figcaption>
+</figure>
+
 The two rankings are combined with **Reciprocal Rank Fusion (RRF)**: each chunk's
 score is `1/(rrf_k + dense_rank) + 1/(rrf_k + lexical_rank)` (a term is omitted if the
 chunk didn't appear in that leg's results). This rewards chunks that rank well in

@@ -19,8 +19,9 @@ export default defineConfig({
     logo: '/logo-512.png',
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'Reference', link: '/reference/cli' },
-      { text: 'Architecture', link: '/architecture' },
+      { text: 'Commands', link: '/reference/cli' },
+      { text: 'Concepts', link: '/concepts' },
+      { text: 'Workflows', link: '/architecture' },
     ],
     sidebar: {
       '/guide/': [
@@ -37,7 +38,7 @@ export default defineConfig({
       ],
       '/reference/': [
         {
-          text: 'Reference',
+          text: 'Commands',
           items: [{ text: 'CLI Commands', link: '/reference/cli' }],
         },
       ],

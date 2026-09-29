@@ -1,4 +1,4 @@
-# CLI Reference
+# Commands
 
 Every `/paper-rag:*` slash command wraps a Python script, invoked as:
 
@@ -8,7 +8,44 @@ uv run --project ${CLAUDE_PLUGIN_ROOT} python ${CLAUDE_PLUGIN_ROOT}/scripts/<scr
 
 This page tabulates each command's syntax and flags as implemented (`scripts/*.py`,
 via `typer`). For the reasoning behind each command's behavior, see the
-[Guide](/guide/getting-started).
+[Guide](/guide/getting-started) or [Concepts](/concepts).
+
+<div class="note">
+  <b>Reading this reference.</b> Each command lists its syntax, a flag table, and one
+  worked example. Commands are grouped by what they do to the library, not
+  alphabetically — start with <b>Homes &amp; setup</b> if you're new.
+</div>
+
+## Overview
+
+### Homes & setup
+
+| Command | Script | Purpose |
+|---|---|---|
+| [`/paper-rag:init`](#paper-rag-init) | `init.py` | Initialize or re-register a paper-rag home. |
+| [`/paper-rag:use`](#paper-rag-use) | `init.py --use-only` | Switch the active home. |
+| [`/paper-rag:whoami`](#paper-rag-whoami) | `init.py --whoami` | Set the default author filter for `mine`. |
+
+### Ingest & remove
+
+| Command | Script | Purpose |
+|---|---|---|
+| [`/paper-rag:ingest`](#paper-rag-ingest) | `ingest.py` | Ingest a paper by PMID, URL, or local file. |
+| [`/paper-rag:remove`](#paper-rag-remove) | `remove.py` | Remove one or more papers from the active library. |
+| [`/paper-rag:tag`](#paper-rag-tag) | `tag.py` | Patch tags on already-ingested papers without re-ingesting. |
+
+### Ask
+
+| Command | Script | Purpose |
+|---|---|---|
+| [`/paper-rag:ask`](#paper-rag-ask) | `query.py` | Retrieve chunks for a question via hybrid dense + BM25 search. |
+
+### Cite & mine
+
+| Command | Script | Purpose |
+|---|---|---|
+| [`/paper-rag:cite`](#paper-rag-cite) | `cite.py` | Generate BibTeX for one or more papers. |
+| [`/paper-rag:mine`](#paper-rag-mine) | `mine.py` | Filter bibliographic metadata (not a vector search). |
 
 ## `/paper-rag:init`
 
