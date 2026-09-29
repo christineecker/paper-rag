@@ -106,10 +106,10 @@ def main(
         True, "--log/--no-log", help="Save this search under <home>/pubmed-searches/ and index it (default: on)"
     ),
     funnel: bool = typer.Option(
-        False, "--funnel/--no-funnel",
+        True, "--funnel/--no-funnel",
         help="Concepts mode only: run one extra ESearch call per concept to record cumulative hit "
-        "counts, and render a search_dir/funnel.html record-flow diagram from them. Off by default "
-        "since it costs extra API calls.",
+        "counts, and render a search_dir/funnel.html record-flow diagram from them. On by default; "
+        "pass --no-funnel to skip the extra API calls.",
     ),
     home: Optional[str] = typer.Option(None, "--home", help="paper-rag home dir override (see config.py)"),
 ):

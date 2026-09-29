@@ -78,17 +78,16 @@ narrowing for (e.g. `"adult human, 2021-2026, excl. reviews"` — used for the f
 too) and `--notes "..."` with a summary of the clarification round that produced this
 query. `--no-log` skips saving/indexing entirely — disable only if the user asks.
 
-In `concepts` mode, pass `--funnel` to also record a PRISMA-style record-flow diagram:
-one extra ESearch call per concept (cumulative AND, in the order given) to see how much
-each concept narrowed the result set, saved as `search_dir/funnel.html`. Costs one API
-call per concept beyond the final search, so it's opt-in — use it once scope is settled
-and concepts are structured as separate population/exposure/species/age-group groups
-(each concept becomes one funnel step), not for quick exploratory searches. Open/publish
-`funnel.html` as an artifact for the user when they ask to see how a search's count was
-derived, or after a multi-round clarification search where they'd want to see the
-narrowing. Not available in `direct` mode, and it doesn't capture `NOT`/date-range
-filters, which aren't part of the concept model — express species/age-group filters as
-their own required concepts instead so they show up as funnel steps.
+In `concepts` mode, a PRISMA-style record-flow diagram is recorded by default: one extra
+ESearch call per concept (cumulative AND, in the order given) to see how much each
+concept narrowed the result set, saved as `search_dir/funnel.html`. Pass `--no-funnel`
+to skip it (saves one API call per concept beyond the final search) for quick
+exploratory searches where you don't need the diagram. Open/publish `funnel.html` as an
+artifact for the user when they ask to see how a search's count was derived, or after a
+multi-round clarification search where they'd want to see the narrowing. Not available
+in `direct` mode, and it doesn't capture `NOT`/date-range filters, which aren't part of
+the concept model — express species/age-group filters as their own required concepts
+instead so they show up as funnel steps.
 
 If `warnings` mentions no local MeSH index was found, tell the user to run
 `/paper-rag:mesh-update` once to enable MeSH heading validation — search still works
