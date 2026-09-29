@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/public/logo.png" alt="paper-rag" width="96"></p>
+
 # paper-rag
 
 RAG over a personal library of PubMed papers (JATS XML / PDF / HTML), using
