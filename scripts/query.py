@@ -50,11 +50,30 @@ def _build_where(type_filter: Optional[str], pmid_filter: Optional[str], where_r
     return {"$and": clauses}
 
 
-def _matches_where(metadata: dict, type_filter: Optional[str], pmid_filter: Optional[str]) -> bool:
-    if type_filter and metadata.get("type") != type_filter:
-        return False
-    if pmid_filter and str(metadata.get("pmid")) != str(pmid_filter):
-        return False
+def _matches_where(metadata: dict, where: Optional[dict]) -> bool:
+    """Re-implements the subset of Chroma `where` semantics this CLI exposes
+    ($and/$or, $eq/$ne/$in/$nin, and bare equality), so the BM25/lexical leg
+    respects the same --where/--type/--pmid filter as the dense leg instead of
+    ignoring anything beyond type/pmid."""
+    if not where:
+        return True
+    if "$and" in where:
+        return all(_matches_where(metadata, clause) for clause in where["$and"])
+    if "$or" in where:
+        return any(_matches_where(metadata, clause) for clause in where["$or"])
+    for field, condition in where.items():
+        value = metadata.get(field)
+        if isinstance(condition, dict):
+            if "$eq" in condition and value != condition["$eq"]:
+                return False
+            if "$ne" in condition and value == condition["$ne"]:
+                return False
+            if "$in" in condition and value not in condition["$in"]:
+                return False
+            if "$nin" in condition and value in condition["$nin"]:
+                return False
+        elif str(value) != str(condition):
+            return False
     return True
 
 
@@ -133,7 +152,7 @@ def main(
 
         for doc_id, score in raw_hits:
             meta = meta_lookup.get(doc_id, {})
-            if _matches_where(meta, type_filter, pmid_filter):
+            if _matches_where(meta, where):
                 filtered.append((doc_id, score))
             if len(filtered) >= n_candidates:
                 break
