@@ -26,9 +26,36 @@ class _FakeDoclingDocument:
         return "# Synthetic document\n\nSynthetic chunk about metformin.\n"
 
 
+_FAKE_RESOLVED_PMID = "10000001"
+
+
+def _fake_citation_metadata(pmid):
+    return {
+        "pmid": pmid,
+        "pmcid": None,
+        "title": "A Synthetic Paper About Metformin",
+        "authors": [{"family": "Doe", "given": "J"}],
+        "journal": "Journal of Synthetic Testing",
+        "year": "2020",
+        "volume": "1",
+        "issue": "1",
+        "pages": None,
+        "doi": None,
+        "abstract": "Synthetic abstract for a paper about metformin.",
+        "keywords": ["testing"],
+        "pub_types": ["Journal Article"],
+        "elocation_id": None,
+    }
+
+
 def _patch_convert_and_chunk(monkeypatch, n_chunks=3, n_figures=0):
     monkeypatch.setattr(ingest.convert_lib, "convert_document", lambda path, ocr=False: _FakeDoclingDocument())
     monkeypatch.setattr(ingest.chunk_lib, "chunk_document", lambda doc, model: _fake_chunks(n_chunks))
+    # sample.jats.xml carries a placeholder DOI (10.1000/test.0001) that has no real
+    # PubMed record; mock the auto-resolve-PMID network call so these tests exercise
+    # ingest's local-file path deterministically instead of depending on live NCBI.
+    monkeypatch.setattr(ingest.fetch_lib, "find_pmid_by_doi", lambda doi: _FAKE_RESOLVED_PMID)
+    monkeypatch.setattr(ingest.fetch_lib, "fetch_citation_metadata", _fake_citation_metadata)
 
     def fake_extract_figures(doc, doc_key, figures_dir, source_path=None, describe_figures=False):
         figures_dir.mkdir(parents=True, exist_ok=True)

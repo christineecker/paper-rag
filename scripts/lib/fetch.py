@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import random
 import re
 import time
 from pathlib import Path
@@ -19,7 +20,20 @@ PMC_S3_BASE = "https://pmc-oa-opendata.s3.amazonaws.com"
 _S3_LIST_NS = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
 _IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif")
 
+TOOL_NAME = "paper-rag"
+CONTACT_EMAIL = "paper-rag@localhost"
+
+# Hard ceiling on PMIDs fetched per esearch_pmids() call, independent of the
+# caller-requested max_results, so a bad/broad query can't paginate forever.
+ESEARCH_SAFETY_LIMIT = 10_000
+DEFAULT_ESEARCH_PAGE_SIZE = 500
+
 _last_request_time = 0.0
+
+
+class ESearchError(RuntimeError):
+    """Raised when ESearch cannot be completed: bad query syntax, rate limiting
+    that persists past retries, or PubMed being unavailable."""
 
 
 def _rate_limit() -> None:
@@ -34,11 +48,131 @@ def _rate_limit() -> None:
 
 
 def _ncbi_params(extra: dict) -> dict:
-    params = dict(extra)
+    params = {"tool": TOOL_NAME, "email": CONTACT_EMAIL}
+    params.update(extra)
     api_key = os.environ.get("NCBI_API_KEY")
     if api_key:
         params["api_key"] = api_key
     return params
+
+
+def _backoff_sleep(attempt: int) -> None:
+    base = min(2**attempt, 30)
+    time.sleep(base + random.uniform(0, base * 0.25))
+
+
+def _get_with_retry(url: str, params: dict, *, timeout: float, max_retries: int) -> httpx.Response:
+    """GET with NCBI rate-limiting plus retry/backoff+jitter on timeouts, 429s, and
+    5xx responses. Honors a numeric Retry-After header when present."""
+    last_error: Optional[Exception] = None
+    for attempt in range(max_retries):
+        _rate_limit()
+        try:
+            resp = httpx.get(url, params=params, timeout=timeout, follow_redirects=True)
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            last_error = exc
+            _backoff_sleep(attempt)
+            continue
+
+        if resp.status_code == 429 or 500 <= resp.status_code < 600:
+            last_error = ESearchError(f"NCBI returned HTTP {resp.status_code}")
+            retry_after = resp.headers.get("Retry-After")
+            if retry_after is not None:
+                try:
+                    time.sleep(max(0.0, float(retry_after)))
+                    continue
+                except ValueError:
+                    pass
+            _backoff_sleep(attempt)
+            continue
+
+        resp.raise_for_status()
+        return resp
+
+    raise ESearchError(f"ESearch request failed after {max_retries} attempts") from last_error
+
+
+def esearch_pmids(
+    query: str,
+    *,
+    max_results: int = 1000,
+    page_size: int = DEFAULT_ESEARCH_PAGE_SIZE,
+    max_retries: int = 5,
+) -> dict:
+    """Run PubMed ESearch for a compiled query, paginating with usehistory until
+    `max_results`, PubMed's reported total, or ESEARCH_SAFETY_LIMIT is reached.
+
+    Returns a dict: pmids (deduped across pages, first-seen order), total_count,
+    returned_count, truncated, query_translation, webenv, querykey.
+    """
+    if not query or not query.strip():
+        raise ValueError("query must not be empty")
+    if max_results <= 0:
+        raise ValueError("max_results must be positive")
+    if page_size <= 0:
+        raise ValueError("page_size must be positive")
+
+    safety_limit = min(max_results, ESEARCH_SAFETY_LIMIT)
+    page_size = max(1, min(page_size, safety_limit))
+
+    pmids: list[str] = []
+    seen: set[str] = set()
+    total_count = 0
+    query_translation: Optional[str] = None
+    webenv: Optional[str] = None
+    querykey: Optional[str] = None
+    retstart = 0
+
+    while len(pmids) < safety_limit:
+        retmax = min(page_size, safety_limit - len(pmids))
+        params = _ncbi_params(
+            {
+                "db": "pubmed",
+                "term": query,
+                "retmode": "json",
+                "retstart": retstart,
+                "retmax": retmax,
+                "usehistory": "y",
+            }
+        )
+        resp = _get_with_retry(ESEARCH_URL, params, timeout=30.0, max_retries=max_retries)
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise ESearchError("ESearch returned non-JSON response") from exc
+
+        result = data.get("esearchresult")
+        if result is None:
+            raise ESearchError(f"unexpected ESearch response: {data!r}")
+        if "ERROR" in result:
+            raise ESearchError(f"invalid PubMed query: {result['ERROR']}")
+
+        total_count = int(result.get("count", 0))
+        query_translation = result.get("querytranslation", query_translation)
+        webenv = result.get("webenv", webenv)
+        querykey = result.get("querykey", querykey)
+
+        page_ids = result.get("idlist", [])
+        if not page_ids:
+            break
+        for pmid in page_ids:
+            if pmid not in seen:
+                seen.add(pmid)
+                pmids.append(pmid)
+
+        retstart += len(page_ids)
+        if retstart >= total_count:
+            break
+
+    return {
+        "pmids": pmids,
+        "total_count": total_count,
+        "returned_count": len(pmids),
+        "truncated": total_count > len(pmids),
+        "query_translation": query_translation,
+        "webenv": webenv,
+        "querykey": querykey,
+    }
 
 
 def pmid_to_pmcid(pmid: str) -> Optional[str]:
