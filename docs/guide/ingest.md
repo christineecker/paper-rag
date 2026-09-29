@@ -57,8 +57,8 @@ found, or the DOI has no PubMed record, the script aborts:
 ```
 
 When this happens, Claude tries to identify the paper from its title/authors/journal
-and look up a PMID via the `pubmed` MCP server before asking you to supply one
-manually — it won't guess a PMID.
+and look up a PMID via the `pubmed-cyanheads` MCP server before asking you to supply
+one manually — it won't guess a PMID.
 
 Without a resolvable PMID at all, the paper is still ingested and fully searchable —
 it's just keyed by a SHA-256 hash of the file instead of a PMID, and its metadata is

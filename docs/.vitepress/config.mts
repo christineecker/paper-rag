@@ -30,6 +30,7 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Ingesting Papers', link: '/guide/ingest' },
+            { text: 'Searching PubMed', link: '/guide/pubmed-search' },
             { text: 'Asking Questions', link: '/guide/ask' },
             { text: 'Citing & Filtering', link: '/guide/cite-and-mine' },
             { text: 'Tags & Homes', link: '/guide/tags-and-homes' },

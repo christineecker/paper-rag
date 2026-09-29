@@ -34,6 +34,13 @@ via `typer`). For the reasoning behind each command's behavior, see the
 | [`/paper-rag:remove`](#paper-rag-remove) | `remove.py` | Remove one or more papers from the active library. |
 | [`/paper-rag:tag`](#paper-rag-tag) | `tag.py` | Patch tags on already-ingested papers without re-ingesting. |
 
+### PubMed search
+
+| Command | Script | Purpose |
+|---|---|---|
+| [`/paper-rag:search`](#paper-rag-search) | `search_pubmed.py` | Search PubMed itself (not the local library) for a deduplicated PMID set. |
+| [`/paper-rag:mesh-update`](#paper-rag-mesh-update) | `mesh_update.py` | Download/build the local MeSH descriptor index used by `search`'s concept mode. |
+
 ### Ask
 
 | Command | Script | Purpose |
@@ -138,6 +145,56 @@ Remove one or more papers from the active library. Runs `scripts/remove.py`.
 
 ```
 /paper-rag:remove 31978945 --yes
+```
+
+## `/paper-rag:search`
+
+Search PubMed itself (not the local library) for a deduplicated PMID set. Runs
+`scripts/search_pubmed.py`. See [Searching PubMed](/guide/pubmed-search) for a full
+walkthrough.
+
+**Syntax:** `/paper-rag:search --mode direct --query "..."` or
+`/paper-rag:search --mode concepts --concepts '[...]' [--sensitivity broad|balanced|precise] [--max-results N] [--page-size N]`
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--mode` | string (`direct`\|`concepts`) | required | `direct` passes `--query` straight to ESearch; `concepts` compiles a Boolean query from `--concepts`. |
+| `--query` | string | none | Raw PubMed query string (`--mode direct` only). |
+| `--concepts` | JSON string | none | Array of `{"name", "terms", "required", "expand"}` objects (`--mode concepts` only). `required`/`expand` default `true`. |
+| `--sensitivity` | string (`broad`\|`balanced`\|`precise`) | `balanced` | How aggressively concept compilation narrows the query — see [Searching PubMed](/guide/pubmed-search#step-3-tune-recall-vs-precision-with-sensitivity). |
+| `--max-results` | int | `1000` | Stop paginating once this many PMIDs are collected (hard ceiling: 10,000). |
+| `--page-size` | int | `500` | ESearch page size per request. |
+
+There is no `question` mode — that would need an LLM classifying the question into a
+framework, and this project has none. Claude extracts concepts itself and calls
+`concepts` mode instead.
+
+**Example:**
+
+```
+/paper-rag:search --mode concepts --concepts '[{"name":"population","terms":["autism","autism spectrum disorder"]},{"name":"modality","terms":["MRI","structural MRI"]}]'
+```
+
+## `/paper-rag:mesh-update`
+
+Download/build the local MeSH descriptor index used by `/paper-rag:search`'s
+`concepts` mode. Runs `scripts/mesh_update.py`. Independent of any paper-rag home —
+cached once at `~/.cache/paper-rag/mesh` (override with `PAPER_RAG_MESH_CACHE_DIR`).
+
+**Syntax:** `/paper-rag:mesh-update [--year YYYY] [--force]`
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
+| `--year` | int | current year | Which year's MeSH descriptor release to fetch. |
+| `--force` | flag | off | Re-download and rebuild even if already cached. |
+
+Downloads NLM's public-domain descriptor XML (300MB+) the first time — a few minutes on
+a normal connection, instant on every run after (cached).
+
+**Example:**
+
+```
+/paper-rag:mesh-update
 ```
 
 ## `/paper-rag:ask`
