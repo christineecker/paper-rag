@@ -5,6 +5,8 @@ RAG over a personal library of PubMed papers (JATS XML / PDF / HTML), using
 [Chroma](https://www.trychroma.com/) for vector storage, with hybrid dense + BM25
 lexical retrieval. Packaged as a Claude Code plugin.
 
+Full docs: <https://christineecker.github.io/paper-rag/>
+
 ## Install
 
 Prerequisite: [`uv`](https://docs.astral.sh/uv/) must be installed. The plugin's Python
@@ -50,6 +52,9 @@ Set up a home with `/paper-rag:init <path> [--name NAME] [--use]`, switch betwee
 registered homes with `/paper-rag:use <name>`.
 
 ## Usage
+
+> Interactive, step-by-step tutorials for each command live in the
+> [docs](https://christineecker.github.io/paper-rag/guide/getting-started) linked above.
 
 - `/paper-rag:ingest <pmid|url|path>` — ingest a paper. PMIDs are resolved via PMC's
   open-access JATS XML, falling back to an OA PDF, falling back to metadata-only ingest
