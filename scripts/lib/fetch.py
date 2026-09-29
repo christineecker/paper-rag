@@ -12,6 +12,7 @@ from defusedxml import ElementTree as ET
 
 ID_CONVERTER_URL = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 # The old oa.fcgi OA package/PDF service was retired by NCBI in Aug 2026; article
 # files (JATS XML, PDF, media) now live on the PMC Cloud Service (S3), unauthenticated.
 PMC_S3_BASE = "https://pmc-oa-opendata.s3.amazonaws.com"
@@ -58,6 +59,20 @@ def pmid_to_pmcid(pmid: str) -> Optional[str]:
     if "pmcid" not in record or "errmsg" in record:
         return None
     return record["pmcid"]
+
+
+def find_pmid_by_doi(doi: str) -> Optional[str]:
+    """Look up the PMID for a DOI via the NCBI ESearch API. None if not found."""
+    _rate_limit()
+    resp = httpx.get(
+        ESEARCH_URL,
+        params=_ncbi_params({"db": "pubmed", "term": f"{doi}[AID]", "retmode": "json"}),
+        timeout=30.0,
+        follow_redirects=True,
+    )
+    resp.raise_for_status()
+    ids = resp.json().get("esearchresult", {}).get("idlist", [])
+    return ids[0] if ids else None
 
 
 _JATS_DOCTYPE = (

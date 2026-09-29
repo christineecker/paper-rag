@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -39,6 +40,30 @@ def _sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     h.update(path.read_bytes())
     return h.hexdigest()
+
+
+_DOI_RE = re.compile(r"10\.\d{4,9}/[^\s\"'<>)]+", re.IGNORECASE)
+
+
+def _extract_doi_from_pdf(path: Path) -> Optional[str]:
+    """Best-effort DOI scrape from the first couple of pages of a PDF."""
+    import pypdfium2 as pdfium
+
+    try:
+        pdf = pdfium.PdfDocument(path)
+        try:
+            parts = []
+            for i, page in enumerate(pdf):
+                if i >= 2:
+                    break
+                parts.append(page.get_textpage().get_text_range())
+            text = "".join(parts)
+        finally:
+            pdf.close()
+    except Exception:
+        return None
+    match = _DOI_RE.search(text)
+    return match.group(0).rstrip(".,;") if match else None
 
 
 def _ensure_papers_dir(home: Path, doc_key: str) -> Path:
@@ -153,6 +178,37 @@ def main(
                 print(json.dumps({"error": "file_not_found", "path": str(local_path)}))
                 raise typer.Exit(code=1)
             file_hash = _sha256_file(local_path)
+
+        source_for_scan = downloaded if is_url else local_path
+
+        if resolved_pmid is None:
+            doi = None
+            if source_for_scan.suffix.lower() == ".xml":
+                try:
+                    doi = fetch_lib.fetch_citation_metadata_from_jats(source_for_scan).get("doi")
+                except Exception:
+                    doi = None
+            elif source_for_scan.suffix.lower() == ".pdf":
+                doi = _extract_doi_from_pdf(source_for_scan)
+
+            if doi:
+                try:
+                    resolved_pmid = fetch_lib.find_pmid_by_doi(doi)
+                except Exception:
+                    resolved_pmid = None
+
+            if resolved_pmid is None:
+                if is_url:
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+                print(
+                    json.dumps(
+                        {
+                            "error": "pmid_not_found",
+                            "hint": "could not determine PMID automatically - rerun with --pmid PMID",
+                        }
+                    )
+                )
+                raise typer.Exit(code=1)
 
         doc_key = resolved_pmid or file_hash
         doc_dir = _ensure_papers_dir(home, doc_key)
