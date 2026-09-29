@@ -20,7 +20,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'Reference', link: '/reference/cli' },
-      { text: 'Architecture', link: '/architecture.html' },
+      { text: 'Architecture', link: '/architecture' },
     ],
     sidebar: {
       '/guide/': [

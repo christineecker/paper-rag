@@ -16,7 +16,7 @@ hero:
       link: /reference/cli
     - theme: alt
       text: Architecture
-      link: /architecture.html
+      link: /architecture
 
 features:
   - title: Auto-resolving ingest
