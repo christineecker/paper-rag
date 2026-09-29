@@ -1,5 +1,9 @@
 # paper-rag
 
+## PubMed MCP tool
+
+Use `pubmed-cyanheads` (`@cyanheads/pubmed-mcp-server`) for all PubMed/PMC work — search, full text, citations, MeSH, ID conversion. Do not use `plugin:bio-research:pubmed`: its query expansion adds noisy MeSH synonyms that pull irrelevant results, its full-text output is unstructured prose with broken citation markers, and it forces attribution boilerplate into every response. cyanheads gives clean queries, structured JSON full text (sections/tables/figures), inline titles/PMCID/DOI on search, and Europe PMC fallback.
+
 ## Graphify knowledge graph
 
 A knowledge graph of this project lives in `graphify-out/`.
