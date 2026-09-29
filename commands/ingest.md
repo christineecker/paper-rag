@@ -6,19 +6,19 @@ allowed-tools: Bash(uv run --project ${CLAUDE_PLUGIN_ROOT}:*)
 
 Ingest a paper into the active paper-rag library.
 
-**Local file, no PMID given:** if `$ARGUMENTS` targets a local file path (not a PMID, not
-a URL) and does not include `--pmid`, first try to resolve the PMID before ingesting:
+**URL or local file, no PMID given:** the script itself tries to resolve the PMID before
+ingesting — it scrapes a DOI from the JATS front matter (XML source) or the first two
+pages of text (PDF source), then looks up the PMID via PubMed ESearch. If resolved, the
+paper is keyed and enriched with full PubMed metadata just like a PMID target. No agent
+action needed for this.
 
-1. Read enough of the file (title, authors, journal, year — e.g. via the PDF's first page)
-   to identify the paper.
-2. Look it up with the `pubmed` MCP server: prefer `lookup_article_by_citation`; fall back
-   to `search_articles` with title/author/journal terms if that doesn't resolve.
-3. If a confident single match is found, pass its PMID as `--pmid <PMID>` to the ingest
-   command below (this also lets full citation metadata be fetched instead of a bare
-   metadata-only stub).
-4. If no confident match is found (ambiguous or no hits), tell the user the PMID couldn't
-   be resolved and ask them to supply it manually (`--pmid`) or confirm ingesting without
-   one, rather than ingesting silently.
+If the script cannot resolve a PMID this way (no DOI found, or the DOI has no PubMed
+record), it aborts with `{"error": "pmid_not_found", "hint": "...rerun with --pmid PMID"}`
+and ingests nothing. In that case, try to identify the paper yourself (title/authors/
+journal from the file) and look it up with the `pubmed` MCP server (`lookup_article_by_citation`,
+falling back to `search_articles`); if a confident match is found, retry with
+`--pmid <PMID>`. If no confident match is found, tell the user and ask them to supply the
+PMID manually, rather than guessing.
 
 Run:
 
