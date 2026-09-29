@@ -1,5 +1,5 @@
 <title>paper-rag architecture</title>
-<meta name="description" content="How ingest, ask, and the bibliographic commands move data through paper-rag — hybrid retrieval versus a direct metadata scan.">
+<meta name="description" content="How ingest, ask, and the bibliographic commands move data through paper-rag — hybrid retrieval versus a direct metadata scan — plus the on-disk RAG home layout.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -124,6 +124,17 @@
     color: var(--ink-dim);
     margin-top: 8px;
   }
+
+  .tree {
+    margin: 0;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .tree .c { color: var(--ink-dim); }
+  .tree .k { color: var(--accent); font-weight: 600; }
 </style>
 
 <main>
@@ -330,6 +341,32 @@
       </svg>
       <figcaption>
         "First author", "which journal", "which year" are facts already sitting in <b>metadata.json</b> — asking the vector store to relevance-rank for them would be answering a lookup with a guess. <code>/paper-rag:mine</code> defaults <code>--author</code> from <code>config.json</code>'s <code>author_name</code>, set once via <code>/paper-rag:whoami</code>.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>RAG home — file &amp; folder layout</h2>
+    <figure>
+      <pre class="tree"><span class="k">&lt;home&gt;/</span>                              <span class="c"># resolve_home(): --home &gt; $PAPER_RAG_HOME &gt; .paper-rag-home &gt; homes.json "current" &gt; ~/.local/share/paper-rag</span>
+├── <span class="k">config.json</span>                       <span class="c"># {"embedding_model": "...", "author_name": "..."}</span>
+├── <span class="k">chroma/</span>                            <span class="c"># chromadb.PersistentClient(path=chroma_dir(home))</span>
+│   └── <span class="c">... one collection per embedding model: papers__{model_slug}</span>
+├── <span class="k">bm25/</span>
+│   └── <span class="k">{model_slug}.pkl</span>                <span class="c"># pickled BM25 index, rebuilt whole on every ingest touching that model's collection</span>
+└── <span class="k">papers/</span>
+    └── <span class="k">&lt;doc_key&gt;/</span>                    <span class="c"># doc_key = resolved PMID, else sha256 of the local file</span>
+        ├── <span class="k">metadata.json</span>              <span class="c"># authors, year, journal, doi, doc_key, has_fulltext</span>
+        ├── <span class="k">fulltext.md</span>                <span class="c"># docling-converted markdown — only written when has_fulltext</span>
+        └── <span class="k">figures/</span>
+            └── <span class="k">fig_0.png, fig_1.png, ...</span>  <span class="c"># PictureItem crops, PDF sources only</span>
+
+<span class="c">~/.config/paper-rag/</span>
+└── <span class="k">homes.json</span>                        <span class="c"># {"homes": {name: path}, "current": name} — multiple libraries, switched by name</span>
+
+<span class="c">&lt;project&gt;/.paper-rag-home</span>                <span class="c"># optional per-project override: a raw path, or "name:&lt;name&gt;" into homes.json</span></pre>
+      <figcaption>
+        Every paper gets its own <b>doc_key</b> directory under <code>papers/</code> — the same key that tags each chroma chunk and bm25 entry, so <code>--force</code> re-ingest deletes-then-reinserts by directory, not by search. <b>chroma/</b> and <b>bm25/</b> are keyed by <code>embedding_model</code>, not doc_key — switching models gets you a fresh collection and index, not a mixed one.
       </figcaption>
     </figure>
   </section>
