@@ -38,7 +38,7 @@ via `typer`). For the reasoning behind each command's behavior, see the
 
 | Command | Script | Purpose |
 |---|---|---|
-| [`/paper-rag:search`](#paper-rag-search) | `search_pubmed.py` | Search PubMed itself (not the local library) for a deduplicated PMID set. |
+| [`/paper-rag:pubmed-search`](#paper-rag-search) | `search_pubmed.py` | Search PubMed itself (not the local library) for a deduplicated PMID set. |
 | [`/paper-rag:mesh-update`](#paper-rag-mesh-update) | `mesh_update.py` | Download/build the local MeSH descriptor index used by `search`'s concept mode. |
 
 ### Ask
@@ -147,14 +147,14 @@ Remove one or more papers from the active library. Runs `scripts/remove.py`.
 /paper-rag:remove 31978945 --yes
 ```
 
-## `/paper-rag:search`
+## `/paper-rag:pubmed-search`
 
 Search PubMed itself (not the local library) for a deduplicated PMID set. Runs
 `scripts/search_pubmed.py`. See [Searching PubMed](/guide/pubmed-search) for a full
 walkthrough.
 
-**Syntax:** `/paper-rag:search --mode direct --query "..."` or
-`/paper-rag:search --mode concepts --concepts '[...]' [--sensitivity broad|balanced|precise] [--max-results N] [--page-size N]`
+**Syntax:** `/paper-rag:pubmed-search --mode direct --query "..."` or
+`/paper-rag:pubmed-search --mode concepts --concepts '[...]' [--sensitivity broad|balanced|precise] [--max-results N] [--page-size N]`
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
@@ -172,12 +172,12 @@ framework, and this project has none. Claude extracts concepts itself and calls
 **Example:**
 
 ```
-/paper-rag:search --mode concepts --concepts '[{"name":"population","terms":["autism","autism spectrum disorder"]},{"name":"modality","terms":["MRI","structural MRI"]}]'
+/paper-rag:pubmed-search --mode concepts --concepts '[{"name":"population","terms":["autism","autism spectrum disorder"]},{"name":"modality","terms":["MRI","structural MRI"]}]'
 ```
 
 ## `/paper-rag:mesh-update`
 
-Download/build the local MeSH descriptor index used by `/paper-rag:search`'s
+Download/build the local MeSH descriptor index used by `/paper-rag:pubmed-search`'s
 `concepts` mode. Runs `scripts/mesh_update.py`. Independent of any paper-rag home —
 cached once at `~/.cache/paper-rag/mesh` (override with `PAPER_RAG_MESH_CACHE_DIR`).
 

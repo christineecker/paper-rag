@@ -22,7 +22,7 @@ features:
   - title: Auto-resolving ingest
     details: Ingest by PMID, URL, or local file. PMIDs resolve PMC open-access full text automatically, falling back to metadata-only.
   - title: Reproducible PubMed search
-    details: /paper-rag:search compiles a deterministic Boolean query from structured concepts, validated against a local MeSH index, before you ingest anything.
+    details: /paper-rag:pubmed-search compiles a deterministic Boolean query from structured concepts, validated against a local MeSH index, before you ingest anything.
   - title: Hybrid retrieval
     details: Dense embeddings (Chroma) fused with BM25 lexical search via Reciprocal Rank Fusion, filterable with --where.
   - title: Cited answers

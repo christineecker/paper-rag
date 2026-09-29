@@ -75,10 +75,10 @@ syntax (Chroma's `where` is exact-match, not substring).
 
 ## PubMed search is not library search
 
-`/paper-rag:search` queries PubMed itself (via NCBI ESearch) to find PMIDs worth
+`/paper-rag:pubmed-search` queries PubMed itself (via NCBI ESearch) to find PMIDs worth
 ingesting — it never touches Chroma, BM25, or any home. `/paper-rag:ask` is the inverse:
 it only ever searches papers already ingested into the active home. Confusing the two
-means either searching an empty local index, or expecting `/paper-rag:search` to answer
+means either searching an empty local index, or expecting `/paper-rag:pubmed-search` to answer
 questions about paper content it never read. See [Searching PubMed](/guide/pubmed-search).
 
 ## Metadata never touches the index
