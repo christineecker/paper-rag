@@ -62,8 +62,8 @@ def main(
             cmd.append("--force")
         proc = subprocess.run(cmd, capture_output=True, text=True)
         try:
-            summary = json.loads(proc.stdout.strip().splitlines()[-1])
-        except (json.JSONDecodeError, IndexError):
+            summary = json.loads(proc.stdout.strip())
+        except json.JSONDecodeError:
             summary = {"error": "unparseable_output", "stdout": proc.stdout, "stderr": proc.stderr}
         results.append({"pmid": d["pmid"], "title": d.get("title"), **summary})
 

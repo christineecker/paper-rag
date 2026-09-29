@@ -349,6 +349,10 @@ def main(
             )
         n_figures = len(figs)
 
+        for media_path in doc_dir.iterdir():
+            if media_path.is_file() and media_path.suffix.lower() in fetch_lib.IMAGE_EXTS:
+                media_path.unlink()
+
     abstract_entry = abstract_lib.build_abstract_entry(doc_key, metadata)
     if abstract_entry:
         entry_meta = dict(base_meta)

@@ -18,7 +18,7 @@ ESEARCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 # files (JATS XML, PDF, media) now live on the PMC Cloud Service (S3), unauthenticated.
 PMC_S3_BASE = "https://pmc-oa-opendata.s3.amazonaws.com"
 _S3_LIST_NS = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
-_IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif")
+IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif")
 
 TOOL_NAME = "paper-rag"
 CONTACT_EMAIL = "paper-rag@localhost"
@@ -305,7 +305,7 @@ def fetch_pmc_package(pmcid: str, dest_dir: Path) -> Optional[Path]:
         if key == xml_key:
             continue
         filename = key.rsplit("/", 1)[-1]
-        if Path(filename).suffix.lower() not in _IMAGE_EXTS:
+        if Path(filename).suffix.lower() not in IMAGE_EXTS:
             continue
         media_resp = httpx.get(f"{PMC_S3_BASE}/{key}", timeout=60.0, follow_redirects=True)
         media_resp.raise_for_status()
