@@ -187,6 +187,7 @@ tr.sel .t-title .ttl{color:var(--accent-strong);}
 .fig-nav.next{right:8px;transform:translateY(-50%) rotate(180deg);}
 .fig-nav:hover{background:rgba(17,17,19,.9);border-color:var(--border-hover);}
 .fig-counter{position:absolute;bottom:8px;right:8px;font-size:10.5px;font-weight:600;color:var(--text);background:rgba(17,17,19,.7);border-radius:4px;padding:2px 7px;font-feature-settings:var(--tnum);}
+.fig-caption{font-size:11.5px;line-height:1.5;color:var(--text-faint);margin-top:8px;}
 .fig-thumbs{display:flex;gap:6px;margin-top:8px;overflow-x:auto;padding-bottom:2px;}
 .fig-thumb{width:52px;height:52px;object-fit:cover;border-radius:4px;border:1.5px solid var(--border-soft);cursor:pointer;flex:none;opacity:.6;}
 .fig-thumb:hover{opacity:.9;}
@@ -328,6 +329,14 @@ const PAPERS = __PAPERS_JSON__;
 const STORAGE = __STORAGE_JSON__;
 const ATTACH_PORT = __ATTACH_PORT__; // null unless generated with `dashboard.py --serve`
 const ATTACH_TOKEN = __ATTACH_TOKEN__; // per-run secret; server rejects writes without it
+
+// Relative figs/*.png paths only resolve when this page is opened as a local
+// file next to them. When published (e.g. a claude.ai artifact) with --serve
+// running, rewrite to an absolute localhost URL so figures still load.
+function figSrc(path){
+  if(!path) return path;
+  return ATTACH_PORT ? `http://127.0.0.1:${ATTACH_PORT}/dashboard/${path}` : path;
+}
 
 const svg = {
   clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>',
@@ -562,20 +571,23 @@ function renderDetail(){
   const needsMore = authorList.length > 5;
 
   const figures = p.figures && p.figures.length ? p.figures : (p.cover ? [p.cover] : []);
+  const figureCaptions = p.figure_captions || [];
   if(state.figureIndex >= figures.length) state.figureIndex = 0;
+  const activeCaption = figureCaptions[state.figureIndex];
 
   const figureGalleryHtml = figures.length ? `
     <div class="fig-viewer" id="figviewer">
-      <img src="${escapeHtml(figures[state.figureIndex])}" alt="Figure ${state.figureIndex + 1} of ${figures.length}">
+      <img src="${escapeHtml(figSrc(figures[state.figureIndex]))}" alt="Figure ${state.figureIndex + 1} of ${figures.length}">
       ${figures.length > 1 ? `
         <button class="fig-nav prev" id="figprev" title="Previous figure">${svg.chevron}</button>
         <button class="fig-nav next" id="fignext" title="Next figure">${svg.chevron}</button>
         <span class="fig-counter">${state.figureIndex + 1} / ${figures.length}</span>
       ` : ''}
     </div>
+    ${activeCaption ? `<div class="fig-caption">${escapeHtml(activeCaption)}</div>` : ''}
     ${figures.length > 1 ? `
     <div class="fig-thumbs">
-      ${figures.map((f, i) => `<img class="fig-thumb${i===state.figureIndex?' active':''}" data-i="${i}" src="${escapeHtml(f)}" alt="Figure ${i+1} thumbnail">`).join('')}
+      ${figures.map((f, i) => `<img class="fig-thumb${i===state.figureIndex?' active':''}" data-i="${i}" src="${escapeHtml(figSrc(f))}" alt="Figure ${i+1} thumbnail">`).join('')}
     </div>` : ''}
   ` : `<div class="d-cover-empty">${svg.doc}<span>${p.has_fulltext ? 'No figures extracted from source' : 'Metadata-only ingest — no source document stored'}</span></div>`;
 
@@ -727,7 +739,7 @@ function renderDetail(){
   const figViewer = document.getElementById('figviewer');
   if(figViewer) figViewer.addEventListener('click', e => {
     if(e.target.closest('.fig-nav')) return;
-    openLightbox(figures[state.figureIndex]);
+    openLightbox(figSrc(figures[state.figureIndex]));
   });
   const figPrev = document.getElementById('figprev');
   if(figPrev) figPrev.addEventListener('click', () => { state.figureIndex = (state.figureIndex - 1 + figures.length) % figures.length; renderDetail(); });

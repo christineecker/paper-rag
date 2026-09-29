@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Optional
+
+_FIG_CAPTION_RE = re.compile(r"!\[Figure (\d+)\]\([^)]*\)\n\n(.*?)\n\n", re.DOTALL)
 
 
 def embedded_chunk_counts(home: Path) -> dict[str, int]:
@@ -63,6 +66,20 @@ def _pdf_info(pdf_path: Path) -> dict:
     return info
 
 
+def _figure_captions(doc_dir: Path) -> dict[int, str]:
+    """fig index -> caption text, scraped from the "## Figures" block ingest.py
+    writes into fulltext.md (`![Figure N](path)\\n\\ncaption\\n\\n`) -- captions
+    aren't stored anywhere else the dashboard can read without a DB/model load."""
+    fulltext_path = doc_dir / "fulltext.md"
+    if not fulltext_path.is_file():
+        return {}
+    try:
+        text = fulltext_path.read_text()
+    except OSError:
+        return {}
+    return {int(m.group(1)): m.group(2).strip() for m in _FIG_CAPTION_RE.finditer(text)}
+
+
 def _list_figures(figures_dir: Path) -> list[Path]:
     if not figures_dir.is_dir():
         return []
@@ -90,6 +107,8 @@ def scan_paper(doc_dir: Path, home: Path, chunk_counts: Optional[dict[str, int]]
     figure_srcs = _list_figures(figures_dir)
     n_figures = len(figure_srcs)
     cover_src = figure_srcs[0] if figure_srcs else None
+    captions_by_index = _figure_captions(doc_dir)
+    figure_captions = [captions_by_index.get(i) for i in range(len(figure_srcs))]
     n_chunks = (chunk_counts or {}).get(doc_key, 0)
     pdf_path = doc_dir / "source.pdf"
     has_pdf = pdf_path.exists()
@@ -122,6 +141,7 @@ def scan_paper(doc_dir: Path, home: Path, chunk_counts: Optional[dict[str, int]]
         "cover": f"figs/{doc_key}.png" if cover_src else None,
         "_cover_src": str(cover_src) if cover_src else None,
         "figures": [f"figs/{doc_key}_{i}.png" for i in range(len(figure_srcs))],
+        "figure_captions": figure_captions,
         "_figure_srcs": [str(s) for s in figure_srcs],
         "n_chunks": n_chunks,
         "has_embedding": n_chunks > 0,
