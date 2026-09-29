@@ -169,6 +169,30 @@ def compile_concepts(concepts: list[SearchConcept], sensitivity: Sensitivity = "
     return " AND ".join(group_texts), clauses, warnings
 
 
+def _funnel_steps(clauses: list[QueryClause], final_total: int) -> list[dict]:
+    """Run cumulative ESearch counts through each concept clause in order (OR
+    within a concept, AND across concepts so far), so it's possible to see how
+    much each concept narrowed the result set. One extra ESearch call per
+    clause except the last, which reuses the already-computed final total."""
+    steps: list[dict] = []
+    running: list[str] = []
+    for i, clause in enumerate(clauses):
+        running.append(clause.text)
+        cumulative_query = " AND ".join(running)
+        if i == len(clauses) - 1:
+            total = final_total
+        else:
+            total = fetch_lib.esearch_pmids(cumulative_query, max_results=1, page_size=1)["total_count"]
+        steps.append({
+            "concept": clause.concept_name,
+            "clause": clause.text,
+            "required": clause.required,
+            "cumulative_query": cumulative_query,
+            "total_count": total,
+        })
+    return steps
+
+
 def search_pubmed(
     *,
     mode: Mode,
@@ -179,6 +203,7 @@ def search_pubmed(
     sensitivity: Sensitivity = "balanced",
     max_results: int = 1000,
     page_size: int = 500,
+    funnel: bool = False,
 ) -> PubMedSearchResult:
     if mode not in _VALID_MODES:
         raise ValueError(f"unknown mode {mode!r}")
@@ -231,6 +256,8 @@ def search_pubmed(
             {"concept": c.concept_name, "clause": c.text, "required": c.required} for c in clauses
         ],
     }
+    if funnel and mode == "concepts" and clauses:
+        provenance["funnel"] = _funnel_steps(clauses, esearch_result["total_count"])
 
     return PubMedSearchResult(
         pmids=esearch_result["pmids"],

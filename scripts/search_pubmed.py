@@ -12,14 +12,18 @@ python scripts/search_pubmed.py --mode concepts --concepts '<json array>'
 from __future__ import annotations
 
 import json
+import re
 import sys
 from dataclasses import asdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 import typer
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import config as config_lib  # noqa: E402
+from lib import funnel_render  # noqa: E402
 from lib import pubmed_query as pq  # noqa: E402
 
 app = typer.Typer(add_completion=False)
@@ -35,6 +39,53 @@ def _parse_concepts(raw: str) -> list[pq.SearchConcept]:
     return [pq.SearchConcept(**item) for item in data]
 
 
+def _slugify(text: str, max_len: int = 40) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return slug[:max_len].strip("-") or "search"
+
+
+def _write_search_dir(home: Path, payload: dict, label: Optional[str], notes: Optional[str]) -> Path:
+    """Write this search's query, PMIDs, and full result to their own directory
+    under <home>/searches/, and append a pointer to <home>/pubmed_search_log.jsonl
+    so the derivation of a final PMID set can be reconstructed later."""
+    retrieved_at = datetime.fromisoformat(payload["retrieved_at"])
+    stamp = retrieved_at.strftime("%Y-%m-%d_%H%M%S")
+    slug = _slugify(label or payload["pubmed_query"])
+    search_dir = home / "searches" / f"{stamp}_{slug}"
+    search_dir.mkdir(parents=True, exist_ok=True)
+
+    (search_dir / "query.json").write_text(json.dumps({
+        "label": label,
+        "mode": payload["mode"],
+        "pubmed_query": payload["pubmed_query"],
+        "sensitivity": payload["sensitivity"],
+    }, indent=2) + "\n")
+    (search_dir / "pmids.txt").write_text("\n".join(payload["pmids"]) + ("\n" if payload["pmids"] else ""))
+    (search_dir / "result.json").write_text(json.dumps(payload, indent=2) + "\n")
+    if notes:
+        (search_dir / "clarification.md").write_text(notes.strip() + "\n")
+    if payload.get("provenance", {}).get("funnel"):
+        payload_with_dir = dict(payload, search_dir=str(search_dir))
+        html = funnel_render.render_funnel_html(payload_with_dir, label=label)
+        (search_dir / "funnel.html").write_text(html)
+
+    log_path = home / "pubmed_search_log.jsonl"
+    index_entry = {
+        "retrieved_at": payload["retrieved_at"],
+        "label": label,
+        "mode": payload["mode"],
+        "pubmed_query": payload["pubmed_query"],
+        "total_count": payload["total_count"],
+        "returned_count": payload["returned_count"],
+        "truncated": payload["truncated"],
+        "search_dir": str(search_dir),
+    }
+    with log_path.open("a") as fh:
+        fh.write(json.dumps(index_entry) + "\n")
+
+    return search_dir
+
+
 @app.command()
 def main(
     mode: str = typer.Option(..., "--mode", help="direct|concepts"),
@@ -45,6 +96,22 @@ def main(
     sensitivity: str = typer.Option("balanced", "--sensitivity", help="broad|balanced|precise"),
     max_results: int = typer.Option(1000, "--max-results"),
     page_size: int = typer.Option(500, "--page-size"),
+    label: Optional[str] = typer.Option(
+        None, "--label", help="Short note describing this search's intent, stored with its search dir"
+    ),
+    notes: Optional[str] = typer.Option(
+        None, "--notes", help="Freeform clarification/scope notes, saved as clarification.md in the search dir"
+    ),
+    log: bool = typer.Option(
+        True, "--log/--no-log", help="Save this search under <home>/searches/ and index it (default: on)"
+    ),
+    funnel: bool = typer.Option(
+        False, "--funnel/--no-funnel",
+        help="Concepts mode only: run one extra ESearch call per concept to record cumulative hit "
+        "counts, and render a search_dir/funnel.html record-flow diagram from them. Off by default "
+        "since it costs extra API calls.",
+    ),
+    home: Optional[str] = typer.Option(None, "--home", help="paper-rag home dir override (see config.py)"),
 ):
     try:
         parsed_concepts = _parse_concepts(concepts) if concepts else None
@@ -55,6 +122,7 @@ def main(
             sensitivity=sensitivity,  # type: ignore[arg-type]
             max_results=max_results,
             page_size=page_size,
+            funnel=funnel,
         )
     except (ValueError, NotImplementedError) as exc:
         print(json.dumps({"error": str(exc)}))
@@ -62,6 +130,11 @@ def main(
 
     payload = asdict(result)
     payload["retrieved_at"] = result.retrieved_at.isoformat()
+
+    if log:
+        search_dir = _write_search_dir(config_lib.resolve_home(home=home), payload, label, notes)
+        payload["search_dir"] = str(search_dir)
+
     print(json.dumps(payload, indent=2))
 
 
