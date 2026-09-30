@@ -385,10 +385,13 @@ def test_ask_and_dashboard_delegate_with_project_home(main_library, registry, tm
     assert cmd[1].endswith("query.py") and cmd[2:] == ["does metformin work?", "--k", "3"]
     assert env["PAPER_RAG_HOME"] == str(path.resolve())
 
-    assert runner.invoke(projects.app, ["dashboard", "proj", "--serve", "--port", "9000"]).exit_code == 0
+    assert runner.invoke(projects.app, ["dashboard", "proj", "--port", "9000"]).exit_code == 0
     cmd, env = calls[1]
     assert cmd[1].endswith("dashboard.py")
     assert cmd[2:] == ["--home", str(path.resolve()), "--serve", "--port", "9000"]
+
+    assert runner.invoke(projects.app, ["dashboard", "proj", "--no-serve", "--open"]).exit_code == 0
+    assert calls[2][0][2:] == ["--home", str(path.resolve()), "--open"]
 
 
 def test_attach_from_project_writes_through_symlink_to_main(main_library, registry, tmp_path, capsys):

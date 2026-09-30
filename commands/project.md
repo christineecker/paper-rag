@@ -42,9 +42,11 @@ Subcommands (all print JSON):
   `embedding_model_mismatch` until then).
 - `ask <name> "<question>" [query flags]` - `/paper-rag:ask` restricted to the project's
   papers. Answer from the returned chunks exactly as `/paper-rag:ask` describes.
-- `dashboard <name> [--serve] [--port N] [--open]` - rebuild the project dashboard at
-  `<project>/dashboard/index.html`. With `--serve` it blocks like `/paper-rag:dashboard
-  --serve`; PDFs attached there are saved into the main library.
+- `dashboard <name> [--no-serve] [--port N] [--open]` - rebuild the project dashboard at
+  `<project>/dashboard/index.html` and serve it (default), opening the browser. It blocks
+  like `/paper-rag:dashboard --serve` until Ctrl+C - tell the user, and don't leave it
+  running unattended. PDFs dropped on the page are saved into the main library. Use
+  `--no-serve` (optionally `--open`) for a static page whose drop zone is session-only.
 
 Because the project directory has the shape of a paper-rag home, you can also point any
 other script at it with `PAPER_RAG_HOME=<project path>` (e.g. `cite.py`, `mine.py`).

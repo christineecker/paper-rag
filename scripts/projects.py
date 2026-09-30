@@ -9,7 +9,7 @@ python scripts/projects.py add <name> <pmid|doc_key ...>
 python scripts/projects.py remove <name> <pmid|doc_key ...>
 python scripts/projects.py sync <name> [--full]
 python scripts/projects.py ask <name> "<question>" [query.py flags...]
-python scripts/projects.py dashboard <name> [--serve] [--port N] [--open]
+python scripts/projects.py dashboard <name> [--no-serve] [--port N] [--open]
 
 Papers are ingested once into the main home; the project holds symlinks, copied
 embeddings, and its own BM25 index (see lib/projects.py).
@@ -271,11 +271,15 @@ def ask(ctx: typer.Context, name: str = typer.Argument(...)):
 @app.command()
 def dashboard(
     name: str = typer.Argument(...),
-    serve: bool = typer.Option(False, "--serve"),
+    serve: bool = typer.Option(
+        True, "--serve/--no-serve",
+        help="Serve on 127.0.0.1 so dropped PDFs are saved into the main library (default); "
+        "--no-serve just rebuilds the static page",
+    ),
     port: Optional[int] = typer.Option(None, "--port"),
-    open_browser: bool = typer.Option(False, "--open"),
+    open_browser: bool = typer.Option(False, "--open", help="With --no-serve: open the static page"),
 ):
-    """Rebuild (and optionally serve) the project's dashboard."""
+    """Rebuild the project's dashboard and serve it (blocks until Ctrl+C)."""
     project = _resolve(name)
     args = ["--home", str(project.path)]
     if serve:
