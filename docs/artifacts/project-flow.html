@@ -1,0 +1,255 @@
+<title>paper-rag Project Flow</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column; numbered pipeline (real sequence), then one SVG of the sync mechanism. */
+:root {
+  --bg: #f7f6f3;
+  --surface: #ffffff;
+  --fg: #24292d;
+  --muted: #6b7280;
+  --line: #d9d7d0;
+  --accent: #1f6f54;        /* library green: main pool */
+  --accent2: #8a5a17;       /* amber: project side */
+  --code-bg: #eef0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1d1e; --surface: #232628; --fg: #e6e4de; --muted: #9aa1a6;
+    --line: #3a3e40; --accent: #5cc39a; --accent2: #d9a558; --code-bg: #2b2f30;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1d1e; --surface: #232628; --fg: #e6e4de; --muted: #9aa1a6;
+  --line: #3a3e40; --accent: #5cc39a; --accent2: #d9a558; --code-bg: #2b2f30;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  line-height: 1.55; margin: 0; padding-block: 40px 64px; padding-inline: 20px;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1 { font-size: 1.7rem; font-weight: 600; margin: 0 0 4px; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0 0 36px; max-width: 62ch; }
+h2 { font-size: 1.15rem; font-weight: 600; margin: 44px 0 16px; }
+code, pre { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.86em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 12px 14px; overflow-x: auto; margin: 10px 0 0;
+}
+pre code { background: none; padding: 0; }
+
+.step { display: flex; gap: 16px; margin-bottom: 8px; }
+.step .num {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid var(--accent); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 0.9rem; margin-top: 2px;
+}
+.step.project .num { border-color: var(--accent2); color: var(--accent2); }
+.step .body { flex: 1; min-width: 0; padding-bottom: 22px; border-left: 1px solid var(--line); margin-left: -31px; padding-left: 47px; }
+.step:last-child .body { border-left-color: transparent; }
+.step h3 { margin: 4px 0 4px; font-size: 1rem; font-weight: 600; }
+.step p { margin: 4px 0; color: var(--fg); max-width: 68ch; }
+.side { color: var(--muted); font-size: 0.88rem; }
+.tag {
+  display: inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; border-radius: 4px; padding: 1px 7px; vertical-align: 1px;
+}
+.tag.main { color: var(--accent); border: 1px solid var(--accent); }
+.tag.proj { color: var(--accent2); border: 1px solid var(--accent2); }
+figure { margin: 16px 0 0; }
+figure svg { max-width: 100%; height: auto; display: block; }
+figcaption { color: var(--muted); font-size: 0.88rem; margin-top: 10px; max-width: 68ch; }
+.diagram-scroll { overflow-x: auto; }
+.note {
+  border-left: 3px solid var(--accent2); background: var(--surface);
+  border-radius: 0 6px 6px 0; padding: 12px 16px; margin-top: 24px; max-width: 68ch;
+}
+.note p { margin: 4px 0; }
+</style>
+
+<main>
+<h1>paper-rag Project Flow</h1>
+<p class="sub">Search from a project, triage, ingest into the main pool once — then the
+project mirrors its accepted papers by symlink and copied vectors. Planned commands
+(<code>PLAN-projects.md</code>), example project <code>asd-cortex</code>.</p>
+
+<h2>Pipeline</h2>
+
+<div class="step project">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Create project <span class="tag proj">project</span></h3>
+    <p>Scaffolds the mini-home layout anywhere you choose and registers it in
+    <code>~/.config/paper-rag/projects.json</code>, pinned to the current main home.</p>
+    <pre><code>/paper-rag:project create asd-cortex --path ~/Research/asd-cortex/papers</code></pre>
+  </div>
+</div>
+
+<div class="step project">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Run a PubMed search inside the project <span class="tag proj">project</span></h3>
+    <p>Same engine and flags as <code>/paper-rag:pubmed-search</code>, but results land in
+    the project, not the main home:</p>
+    <pre><code>/paper-rag:project search asd-cortex --mode concepts --concepts '[
+  {"name": "autism", "terms": ["autism spectrum disorder"]},
+  {"name": "cortex", "terms": ["cortical thickness", "surface area"]}
+]' --sensitivity balanced</code></pre>
+    <p class="side">Writes <code>&lt;project&gt;/searches/2026-09-30_1420_autism-cortical-thickness/</code>
+    with <code>query.json</code>, <code>pmids.txt</code>, <code>result.json</code>,
+    <code>triage.html</code>; logs to <code>&lt;project&gt;/search_log.jsonl</code>.</p>
+  </div>
+</div>
+
+<div class="step project">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Triage in the browser <span class="tag proj">project</span></h3>
+    <p>Open the search's <code>triage.html</code>, keep/reject each paper; decisions save
+    to <code>triage.json</code> in the same search dir. Unchanged from today's triage.</p>
+    <pre><code>python scripts/triage.py ~/Research/asd-cortex/papers/searches/2026-09-30_1420_autism-cortical-thickness --serve</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>Ingest accepted papers into the main pool <span class="tag main">main home</span></h3>
+    <p>Reads the search's <code>triage.json</code> and runs the normal ingest into the
+    <em>main</em> library — full text, figures, chunks, embeddings, BM25. Papers are stored
+    exactly once. Accepted <code>doc_key</code>s are recorded in the project's
+    <code>members.json</code>, then sync runs automatically.</p>
+    <pre><code>/paper-rag:project ingest asd-cortex searches/2026-09-30_1420_autism-cortical-thickness</code></pre>
+  </div>
+</div>
+
+<div class="step project">
+  <div class="num">5</div>
+  <div class="body">
+    <h3>Auto-sync builds the project mirror <span class="tag proj">project</span></h3>
+    <p>No new parsing or embedding — everything is derived from the main home
+    (mechanism below). Re-runnable any time for repair:</p>
+    <pre><code>/paper-rag:project sync asd-cortex</code></pre>
+  </div>
+</div>
+
+<div class="step project">
+  <div class="num">6</div>
+  <div class="body">
+    <h3>Search and browse the project only <span class="tag proj">project</span></h3>
+    <p>The project dir is shaped like a paper-rag home, so the existing hybrid retrieval
+    and dashboard run against it unchanged:</p>
+    <pre><code>/paper-rag:project ask asd-cortex "Is cortical thickness altered in ASD adults?"
+/paper-rag:project dashboard asd-cortex --serve</code></pre>
+  </div>
+</div>
+
+<h2>Sync mechanism: how project papers are symlinked</h2>
+
+<div class="diagram-scroll">
+<figure>
+<svg viewBox="0 0 840 430" role="img" aria-label="Sync copies nothing heavy: project papers are symlinks into the main home's paper directories, project Chroma receives copied vectors, BM25 and the dashboard are rebuilt from the member subset." fill="none">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor" stroke="none"/>
+    </marker>
+    <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent2)" stroke="none"/>
+    </marker>
+  </defs>
+
+  <!-- Main home container -->
+  <rect x="20" y="40" width="330" height="330" rx="8" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="36" y="28" fill="var(--accent)" font-size="13" font-weight="600">MAIN HOME</text>
+  <text x="36" y="66" fill="var(--muted)" font-size="11" font-family="monospace">~/.local/share/paper-rag/</text>
+
+  <!-- main papers -->
+  <rect x="40" y="84" width="290" height="86" rx="6" stroke="currentColor"/>
+  <text x="56" y="106" fill="currentColor" font-size="12" font-family="monospace">papers/</text>
+  <text x="72" y="126" fill="currentColor" font-size="12" font-family="monospace">pmid_31173064/  ← real files</text>
+  <text x="72" y="144" fill="currentColor" font-size="12" font-family="monospace">pmid_29949889/    (JATS, PDF,</text>
+  <text x="72" y="162" fill="var(--muted)" font-size="12" font-family="monospace">…                 figs, chunks)</text>
+
+  <!-- main chroma -->
+  <rect x="40" y="190" width="290" height="64" rx="6" stroke="currentColor"/>
+  <text x="56" y="212" fill="currentColor" font-size="12" font-family="monospace">chroma/  papers__BAAI_bge-small…</text>
+  <text x="56" y="232" fill="var(--muted)" font-size="12">all chunk vectors, whole library</text>
+
+  <!-- main bm25 -->
+  <rect x="40" y="274" width="290" height="40" rx="6" stroke="currentColor"/>
+  <text x="56" y="299" fill="currentColor" font-size="12" font-family="monospace">bm25/  (whole library)</text>
+
+  <text x="40" y="352" fill="var(--muted)" font-size="12">papers stored once, here only</text>
+
+  <!-- Project container -->
+  <rect x="490" y="40" width="330" height="330" rx="8" stroke="var(--accent2)" stroke-width="1.5"/>
+  <text x="506" y="28" fill="var(--accent2)" font-size="13" font-weight="600">PROJECT asd-cortex</text>
+  <text x="506" y="66" fill="var(--muted)" font-size="11" font-family="monospace">~/Research/asd-cortex/papers/</text>
+
+  <!-- project papers (symlinks) -->
+  <rect x="510" y="84" width="290" height="86" rx="6" stroke="currentColor" stroke-dasharray="5 4"/>
+  <text x="526" y="106" fill="currentColor" font-size="12" font-family="monospace">papers/</text>
+  <text x="542" y="126" fill="currentColor" font-size="12" font-family="monospace">pmid_31173064@   symlinks only,</text>
+  <text x="542" y="144" fill="currentColor" font-size="12" font-family="monospace">pmid_29949889@   members.json</text>
+  <text x="542" y="162" fill="var(--muted)" font-size="12" font-family="monospace">                 subset</text>
+
+  <!-- project chroma -->
+  <rect x="510" y="190" width="290" height="64" rx="6" stroke="currentColor"/>
+  <text x="526" y="212" fill="currentColor" font-size="12" font-family="monospace">chroma/  papers__BAAI_bge-small…</text>
+  <text x="526" y="232" fill="var(--muted)" font-size="12">member chunks only, same vectors</text>
+
+  <!-- project bm25 + dashboard -->
+  <rect x="510" y="274" width="138" height="40" rx="6" stroke="currentColor"/>
+  <text x="524" y="299" fill="currentColor" font-size="12" font-family="monospace">bm25/</text>
+  <rect x="662" y="274" width="138" height="40" rx="6" stroke="currentColor"/>
+  <text x="676" y="299" fill="currentColor" font-size="12" font-family="monospace">dashboard/</text>
+
+  <text x="510" y="352" fill="var(--muted)" font-size="12">rebuilt from member subset each sync</text>
+
+  <!-- symlink arrow: project papers -> main papers -->
+  <line x1="510" y1="118" x2="334" y2="118" stroke="var(--accent2)" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrA)"/>
+  <text x="422" y="106" fill="var(--accent2)" font-size="12" text-anchor="middle">symlink resolves to</text>
+
+  <!-- vector copy arrow: main chroma -> project chroma -->
+  <line x1="334" y1="222" x2="506" y2="222" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="420" y="210" fill="currentColor" font-size="12" text-anchor="middle">copy vectors by doc_key</text>
+  <text x="420" y="242" fill="var(--muted)" font-size="11" text-anchor="middle">no re-embed</text>
+
+  <!-- bm25 rebuild arrow: project papers -> project bm25 -->
+  <line x1="560" y1="174" x2="572" y2="270" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="500" y="248" fill="var(--muted)" font-size="11" text-anchor="end">re-tokenize</text>
+
+  <!-- dashboard arrow -->
+  <line x1="740" y1="174" x2="732" y2="270" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="748" y="230" fill="var(--muted)" font-size="11">scan_papers()</text>
+
+  <!-- caption strip: ingest direction -->
+  <line x1="180" y1="400" x2="180" y2="374" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr)" color="var(--accent)"/>
+  <text x="196" y="396" fill="var(--accent)" font-size="12">step 4 ingests here (once)</text>
+  <line x1="655" y1="400" x2="655" y2="374" stroke="var(--accent2)" stroke-width="1.5" marker-end="url(#arrA)"/>
+  <text x="671" y="396" fill="var(--accent2)" font-size="12">step 5 derives this (repeatable)</text>
+</svg>
+<figcaption>Sync per member <code>doc_key</code>: <code>&lt;project&gt;/papers/&lt;doc_key&gt;</code>
+becomes a symlink to <code>&lt;main_home&gt;/papers/&lt;doc_key&gt;</code>
+(<code>os.symlink</code>, replaced idempotently); the paper's chunk vectors are read from the
+main Chroma collection with <code>where={"doc_key": {"$in": members}}</code> and upserted
+into the project collection under the same ids; BM25 and the dashboard are rebuilt from the
+symlinked subset. Deleting a project never touches the main library.</figcaption>
+</figure>
+</div>
+
+<div class="note">
+  <p><strong>Symlink details.</strong> One symlink per accepted paper, directory-level:
+  <code>papers/pmid_31173064 → ~/.local/share/paper-rag/papers/pmid_31173064</code>.
+  Existing readers (<code>scan_papers()</code>, BM25 rebuild, <code>query.py</code>) follow
+  symlinks transparently on macOS. If a paper is later removed from the main library, the
+  next sync prunes the dangling symlink, its member entry, and its chunks from the project
+  indices, with a warning in the sync summary.</p>
+  <p><strong>Papers already in the library</strong> skip steps 2–4:
+  <code>/paper-rag:project add asd-cortex 31173064</code> adds membership and syncs.</p>
+</div>
+</main>

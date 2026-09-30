@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>paper-rag dashboard — mockup v2</title>
+<style>
+/* Same tokens as skills/paper-rag/templates/dashboard.html so the mockup reads as the same app */
+:root{
+  --bg:#111113; --sidebar:#111113; --panel:#18181b; --panel-2:#1c1c20; --code:#0d0d0f;
+  --border:#2a2a2f; --border-hover:#38383e;
+  --text:#e8e7e3; --text-dim:#b9b8bd; --text-faint:#8b8a92;
+  --accent:#f5a35c; --accent-strong:#f8b174; --accent-bg:rgba(245,163,92,.16); --accent-border:rgba(245,163,92,.25);
+  --oa:#7adff9; --oa-bg:rgba(122,223,249,.14);
+  --green:#8bc78e; --green-bg:rgba(139,199,142,.14); --red:#f0899a; --violet:#b79aef;
+  --sel-row:rgba(245,163,92,.16); --hover:#1c1c20;
+  --mono:ui-monospace,Menlo,Monaco,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.4 Inter,-apple-system,BlinkMacSystemFont,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+svg{width:15px;height:15px;flex:none}
+.app{display:flex;flex-direction:column;height:100vh}
+.banner{background:var(--accent-bg);color:var(--accent-strong);text-align:center;font-size:11.5px;padding:5px 10px;border-bottom:1px solid var(--accent-border)}
+.banner b{font-weight:700}
+
+/* appbar */
+.appbar{display:flex;align-items:center;gap:14px;padding:9px 16px;border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14.5px}
+.logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#f5a35c,#c9662a);display:block}
+.proj{position:relative}
+.proj-btn{display:flex;align-items:center;gap:8px;background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-weight:600}
+.proj-btn small{color:var(--text-faint);font-weight:500}
+.menu{position:absolute;top:calc(100% + 6px);left:0;min-width:270px;background:var(--panel);border:1px solid var(--border-hover);border-radius:8px;padding:5px;box-shadow:0 10px 30px rgba(0,0,0,.55);z-index:60;display:none}
+.menu.show{display:block}
+.menu .mi{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:5px;cursor:pointer;color:var(--text-dim)}
+.menu .mi:hover{background:var(--accent-bg);color:var(--accent)}
+.menu .mi.on{color:var(--text)}
+.menu .mi .c{margin-left:auto;font-size:11px;color:var(--text-faint)}
+.menu .sep{height:1px;background:var(--border);margin:4px 2px}
+.menu .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);padding:6px 10px 3px}
+.gsearch{flex:1;max-width:620px;display:flex;align-items:center;gap:8px;background:var(--code);border:1px solid var(--border);border-radius:6px;padding:4px 6px 4px 12px}
+.gsearch:focus-within{border-color:var(--accent-border)}
+.gsearch input{flex:1;background:none;border:none;outline:none;color:var(--text);padding:5px 0;min-width:0}
+.gsearch svg{color:var(--text-faint)}
+.seg{display:flex;background:var(--panel-2);border-radius:5px;padding:2px;flex:none}
+.seg button{background:none;border:none;padding:4px 10px;border-radius:4px;color:var(--text-faint);font-size:11.5px;font-weight:600}
+.seg button.on{background:var(--accent-bg);color:var(--accent)}
+.kbd{font-size:10px;color:var(--text-faint);border:1px solid var(--border);border-radius:4px;padding:1px 5px}
+.snap{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-dim)}
+.snap .d{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;font-size:12px;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:#111113;border-color:var(--accent)}
+.btn.ghost{background:none}
+.btn.sm{padding:3px 8px;font-size:11.5px}
+
+.body{display:flex;flex:1;min-height:0}
+.rail{width:64px;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:6px}
+.rb{width:52px;padding:7px 0 5px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-faint);border:1px solid transparent;background:none;font-size:10px;font-weight:600}
+.rb svg{width:18px;height:18px}
+.rb:hover{color:var(--text-dim);background:var(--hover)}
+.rb.on{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+
+/* sidebar */
+.side{width:244px;border-right:1px solid var(--border);padding:16px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+.gl{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-faint);font-weight:500;padding:0 6px 6px;display:flex;justify-content:space-between;align-items:center}
+.gl a{text-transform:none;letter-spacing:0;color:var(--accent);cursor:pointer;font-size:11px}
+.si{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:5px;cursor:pointer;color:var(--text-dim)}
+.si svg{color:var(--text-faint)}
+.si:hover{background:var(--hover);color:var(--text)}
+.si.on{background:var(--sel-row);color:var(--text)}
+.si.on svg{color:var(--accent)}
+.si .n{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.si .c{font-size:11px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.si .c.warn{color:var(--accent);background:var(--accent-bg);border-radius:4px;padding:0 6px;font-weight:600}
+.si .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.tagfind{display:flex;align-items:center;gap:6px;background:var(--code);border:1px solid var(--border);border-radius:5px;padding:4px 8px;margin:0 4px 6px}
+.tagfind input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:12px;min-width:0}
+.hist{display:flex;align-items:flex-end;gap:2px;height:44px;padding:0 6px}
+.hist i{flex:1;background:var(--border-hover);border-radius:1px 1px 0 0;min-height:2px}
+.hist i.in{background:var(--accent)}
+.histl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text-faint);padding:3px 6px 0}
+.stor{margin-top:auto;font-size:10.5px;color:var(--text-faint);padding:0 6px}
+.stor .bar{height:4px;background:var(--panel-2);border-radius:2px;margin:6px 0 4px;overflow:hidden}
+.stor .bar i{display:block;height:100%;width:29%;background:linear-gradient(90deg,#f5a35c,#f8b174)}
+
+/* main */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--panel);position:relative}
+.chips{display:flex;align-items:center;gap:6px;padding:8px 14px 0;flex-wrap:wrap;min-height:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--accent-bg);border:1px solid var(--accent-border);color:var(--accent-strong);border-radius:20px;padding:2px 4px 2px 10px;font-size:11.5px;font-weight:600}
+.chip button{background:none;border:none;color:inherit;opacity:.7;padding:0 5px;font-size:14px;line-height:1}
+.chip button:hover{opacity:1}
+.tb{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)}
+.tb .cnt{font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums}
+.tb .sp{flex:1}
+.view{flex:1;min-height:0;display:none;flex-direction:column}
+.view.on{display:flex}
+.scroll{flex:1;overflow:auto;min-height:0}
+
+table{width:100%;border-collapse:collapse}
+th{position:sticky;top:0;background:var(--bg);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--text-faint);font-weight:500;padding:0 10px;height:28px;border-bottom:1px solid var(--border);white-space:nowrap;z-index:1}
+th.s{cursor:pointer}th.s:hover{color:var(--text-dim)}th.s.on{color:var(--accent)}
+td{padding:0 10px;height:34px;border-bottom:1px solid #222227;vertical-align:middle}
+tr.r{cursor:pointer;position:relative}
+tr.r:hover{background:var(--panel-2)}
+tr.r.sel{background:var(--sel-row);box-shadow:inset 2px 0 0 var(--accent)}
+tr.r.unread .ttl{font-weight:650}
+.cb{width:14px;height:14px;border:1.5px solid var(--border-hover);border-radius:3px;display:inline-block;vertical-align:middle;position:relative}
+.cb.on{background:var(--accent);border-color:var(--accent)}
+.cb.on::after{content:"";position:absolute;left:3px;top:0;width:4px;height:8px;border:solid #111;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.star{background:none;border:none;color:var(--border-hover);padding:2px;display:flex}
+.star.on{color:var(--accent)}
+tr.r:hover .star{color:var(--text-faint)}tr.r:hover .star.on{color:var(--accent)}
+.st{width:8px;height:8px;border-radius:50%;display:inline-block}
+.st.unread{background:var(--accent)}.st.reading{background:var(--oa)}.st.read{background:transparent;border:1.5px solid var(--border-hover)}
+.au{color:var(--text-dim);font-weight:500;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl{color:var(--text);max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.sub{color:var(--text-faint);font-size:11.5px;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fa{color:var(--oa);font-weight:600}
+.wpop{position:fixed;z-index:120;width:290px;background:var(--panel);border:1px solid var(--accent-border);border-radius:9px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);display:none;font-size:12px;line-height:1.5;color:var(--text-dim)}
+.wpop.on{display:block}
+.wpop h5{margin:0 0 6px;display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--accent);font-weight:700}
+.wpop h5 svg{width:14px;height:14px}
+.wpop ul{margin:6px 0 10px;padding:0;list-style:none}
+.wpop li{display:flex;gap:7px;padding:1px 0}
+.wpop li i{font-style:normal;flex:none;width:12px}
+.wpop .y{color:var(--accent)}.wpop .n{color:var(--text-faint)}
+.wpop .btn{width:100%;justify-content:center}
+.jn{color:var(--text-dim);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+mark{background:var(--accent-bg);color:var(--accent-strong);border-radius:2px;padding:0 1px}
+.cov{display:flex;gap:4px;align-items:center}
+.cv{width:19px;height:19px;border-radius:4px;display:flex;align-items:center;justify-content:center}
+.cv svg{width:12px;height:12px}
+.cv.ft{background:var(--accent-bg);color:var(--accent)}
+.cv.fg{background:var(--oa-bg);color:var(--oa)}
+.cv.pf{background:var(--oa-bg);color:var(--oa)}
+.cv.off{color:var(--text-faint);opacity:.3}
+.tg{display:inline-block;font-size:10.5px;padding:0 6px;border-radius:4px;background:var(--oa-bg);color:var(--oa);margin-right:4px}
+.qa{display:none;gap:2px;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--panel);border:1px solid var(--border-hover);border-radius:6px;padding:2px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+tr.r:hover .qa{display:flex}
+.qa button{background:none;border:none;border-radius:4px;padding:4px;color:var(--text-dim);display:flex}
+.qa button:hover{background:var(--accent-bg);color:var(--accent)}
+
+/* bulk bar */
+.bulk{display:none;align-items:center;gap:8px;padding:8px 14px;background:var(--accent-bg);border-top:1px solid var(--accent-border);position:relative}
+.bulk.on{display:flex}
+.bulk b{color:var(--accent);margin-right:6px}
+.status{padding:8px 14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-faint)}
+.status b{color:var(--accent)}
+.status.hide{display:none}
+
+/* detail */
+.detail{position:absolute;top:0;right:0;bottom:0;width:480px;background:var(--sidebar);border-left:1px solid var(--border);box-shadow:-16px 0 32px rgba(0,0,0,.35);transform:translateX(100%);transition:transform .25s;display:flex;flex-direction:column;z-index:20}
+.detail.on{transform:none}
+.dtb{display:flex;align-items:center;gap:2px;padding:8px 12px;border-bottom:1px solid var(--border)}
+.dtab{padding:5px 9px;border-radius:5px;color:var(--text-faint);background:none;border:none;font-size:12px;font-weight:600}
+.dtab:hover{color:var(--text);background:var(--panel-2)}
+.dtab.on{color:var(--accent);background:var(--accent-bg)}
+.dtb .sp{flex:1}
+.ib{background:none;border:none;color:var(--text-faint);padding:5px;border-radius:5px;display:flex}
+.ib:hover{color:var(--text);background:var(--panel-2)}
+.dbody{padding:18px 20px 26px;overflow-y:auto;flex:1}
+.kick{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--accent);font-weight:600}
+.dt{font-size:19px;font-weight:600;line-height:1.3;margin:6px 0 8px;letter-spacing:-.01em}
+.da{color:var(--text-dim);font-size:12.5px;margin-bottom:12px}
+.box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px}
+.bl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);margin-bottom:7px;font-weight:500}
+.ab{color:var(--text-dim);line-height:1.7;font-size:12.5px}
+.row2{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600;border:1px solid var(--border);color:var(--text-dim);background:var(--panel-2);cursor:pointer}
+.pill.on{color:var(--accent);border-color:var(--accent-border);background:var(--accent-bg)}
+textarea.note{width:100%;min-height:200px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font:inherit;line-height:1.6;outline:none;resize:vertical}
+select,input.sel{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font:inherit}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:8px;padding:12px;font:11.5px/1.6 var(--mono);color:var(--text-dim);white-space:pre-wrap;margin:10px 0}
+.rel{display:flex;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--panel);cursor:pointer}
+.rel:hover{border-color:var(--accent-border)}
+.rel .sc{font-size:11px;font-weight:700;color:var(--green);background:var(--green-bg);border-radius:4px;padding:1px 6px;height:fit-content}
+.rel b{font-weight:600;display:block}
+.rel small{color:var(--text-faint)}
+
+/* Ask view */
+.ask{max-width:820px;margin:0 auto;padding:22px 24px;width:100%}
+.askbox{display:flex;gap:8px;background:var(--code);border:1px solid var(--border-hover);border-radius:10px;padding:8px 8px 8px 14px;align-items:flex-start}
+.askbox textarea{flex:1;background:none;border:none;outline:none;color:var(--text);font:inherit;font-size:14px;resize:none;min-height:40px}
+.scope{display:flex;gap:6px;align-items:center;margin:10px 2px 18px;color:var(--text-faint);font-size:12px;flex-wrap:wrap}
+.ans{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;line-height:1.75;color:var(--text)}
+.ans p{margin:0 0 10px}
+.cite{display:inline-block;font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-bg);border-radius:4px;padding:0 5px;margin:0 1px;cursor:pointer;vertical-align:1px}
+.src{border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-top:8px;background:var(--panel)}
+.src .h{display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:4px}
+.src .h .n{background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:0 6px;font-size:11px}
+.src q{display:block;color:var(--text-dim);font-size:12.5px;quotes:none;line-height:1.6}
+.src small{color:var(--text-faint)}
+.hint{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+
+/* Insights */
+.ins{padding:20px 24px;overflow:auto}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .l{color:var(--text-faint);font-size:11.5px;margin-top:2px}
+.kpi .m{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden}
+.kpi .m i{display:block;height:100%;background:var(--accent)}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-bottom:12px}
+.card{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.card h3{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:500}
+.bars{display:flex;align-items:flex-end;gap:6px;height:120px}
+.bars div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;font-size:10.5px;color:var(--text-faint)}
+.bars i{width:100%;background:var(--accent);border-radius:3px 3px 0 0;opacity:.85;min-height:2px}
+.hb{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px}
+.hb span{width:120px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb i{height:8px;background:var(--oa);border-radius:4px;opacity:.8}
+.hb em{font-style:normal;color:var(--text-faint);font-size:11px}
+.att{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.att:last-child{border:none}
+.att .t{flex:1;min-width:0}
+.att .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att small{color:var(--text-faint)}
+
+/* Figures */
+.figs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:16px 14px}
+.fc{background:var(--panel-2);border:1px solid var(--border);border-radius:9px;overflow:hidden;cursor:pointer}
+.fc:hover{border-color:var(--accent-border)}
+.fc .im{height:120px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.75);font-weight:700;font-size:12px;letter-spacing:.05em}
+.fc .cp{padding:9px 11px;font-size:11.5px;color:var(--text-dim);line-height:1.45}
+.fc .cp small{display:block;color:var(--text-faint);margin-top:3px}
+
+/* toast + notes legend */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent-border);color:var(--text);padding:9px 16px;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.5);font-size:12.5px;z-index:99;display:none}
+.toast.on{display:block}
+.legend{position:fixed;right:14px;bottom:14px;width:340px;max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--accent-border);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:90;display:none}
+.legend.on{display:block}
+.legend h4{margin:0;padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;background:var(--panel)}
+.legend li{list-style:none;display:flex;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-dim);line-height:1.5}
+.legend ul{margin:0;padding:0}
+.legend li b{color:var(--text)}
+.legend .num,body.annot [data-n]::after{background:var(--red);color:#111;font-weight:800;font-size:10px;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+body.annot [data-n]{position:relative}
+body.annot [data-n]::after{content:attr(data-n);position:absolute;top:-6px;right:-6px;z-index:80;pointer-events:none;box-shadow:0 0 0 2px var(--bg)}
+body.annot .side [data-n]::after,body.annot .rail [data-n]::after{right:2px}
+body.annot tr [data-n]::after{top:-2px}
+@media (max-width:900px){.side,.rail{display:none}.detail{width:100%}.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style></head>
+<body>
+<div class="app">
+  <div class="banner"><b>Mockup</b> — sample data, not connected to your library. Click around; toggle <b>Review notes</b> (top right) to see numbered callouts for every proposed change.</div>
+
+  <div class="appbar">
+    <div class="logo"><i></i>paper-rag</div>
+
+    <div class="proj" data-n="1">
+      <button class="proj-btn" id="projBtn"><span id="projName">Main library</span> <small id="projCnt">14 papers</small>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="menu" id="projMenu">
+        <div class="lbl">Library</div>
+        <div class="mi on" data-p="Main library" data-c="14 papers"><span>Main library</span><span class="c">14</span></div>
+        <div class="lbl">Projects</div>
+        <div class="mi" data-p="autism-ct" data-c="9 papers"><span>autism-ct</span><span class="c">9 · 2 searches</span></div>
+        <div class="mi" data-p="sleep-review" data-c="5 papers"><span>sleep-review</span><span class="c">5 · 1 search</span></div>
+        <div class="sep"></div>
+        <div class="mi" onclick="toast('Would run: /paper-rag:project create')">＋ New project…</div>
+      </div>
+    </div>
+
+    <div class="gsearch" data-n="2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="q" placeholder="Filter by title, author, DOI, PMID…   try  year:>=2020  tag:ADOS" autocomplete="off">
+      <div class="seg" id="mode"><button class="on" data-m="filter">Filter</button><button data-m="ask">Ask</button></div>
+      <span class="kbd">⌘K</span>
+    </div>
+
+    <div class="snap" data-n="3"><span class="d"></span><span>Snapshot 30 Sep 07:48 · <a href="#" style="color:var(--accent)" onclick="toast('3 new papers ingested since this snapshot. Would rebuild dashboard.');return false">3 new — refresh</a></span></div>
+    <button class="btn" id="annotBtn" onclick="toggleAnnot()">Review notes</button>
+  </div>
+
+  <div class="body">
+    <div class="rail">
+      <button class="rb on" data-v="lib" data-n="4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Library</button>
+      <button class="rb" data-v="ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Ask</button>
+      <button class="rb" data-v="figs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>Figures</button>
+      <button class="rb" data-v="ins"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Insights</button>
+    </div>
+
+    <div class="side" id="side">
+      <div>
+        <div class="gl">Smart views</div>
+        <div id="sv"></div>
+      </div>
+      <div data-n="5">
+        <div class="gl">Availability</div>
+        <div id="av"></div>
+      </div>
+      <div data-n="6">
+        <div class="gl">Tags <a id="tagAll">show all (9)</a></div>
+        <div class="tagfind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg><input id="tagq" placeholder="Find tag…"></div>
+        <div id="tg"></div>
+      </div>
+      <div data-n="7">
+        <div class="gl">Year <span id="yrLbl" style="text-transform:none;letter-spacing:0"></span></div>
+        <div class="hist" id="hist"></div>
+        <div class="histl"><span>2014</span><span>2024</span></div>
+      </div>
+      <div class="stor"><div style="display:flex;justify-content:space-between"><span>Local library</span><span>184 MB</span></div><div class="bar"><i></i></div><div style="display:flex;justify-content:space-between"><span>papers 152 MB</span><span>chroma 31 MB</span></div></div>
+    </div>
+
+    <div class="main" id="main">
+      <!-- LIBRARY -->
+      <div class="view on" id="v-lib">
+        <div class="chips" id="chips" data-n="8"></div>
+        <div class="tb">
+          <div class="seg" data-n="9"><button class="on">Table</button><button onclick="go('figs')">Figures</button><button onclick="toast('Card view: title, abstract snippet, cover figure')">Cards</button></div>
+          <div class="sp"></div>
+          <span class="cnt" id="cnt"></span>
+          <button class="btn sm" data-n="10" onclick="toast('Column picker: Journal, Year, Tags, Status, Added, Abstract snippet…')">Columns ▾</button>
+          <button class="btn sm" data-n="11" onclick="toast('Would export the current filtered view (14 → .bib / RIS / CSV)')">Export view ▾</button>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr>
+              <th style="width:30px"><span class="cb" id="cbAll"></span></th>
+              <th style="width:26px"></th>
+              <th style="width:22px" title="Reading status" data-n="12"></th>
+              <th style="width:140px" title="Coverage" data-n="13">Coverage</th>
+              <th class="s" data-k="au">Authors <span style="text-transform:none;color:var(--oa)">(first author highlighted)</span></th>
+              <th class="s" data-k="last">Last author</th>
+              <th class="s" data-k="title">Title</th>
+              <th class="s" data-k="journal">Journal</th>
+              <th class="s on" data-k="year">Year ↓</th>
+              <th>Tags</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div class="bulk" id="bulk" data-n="14">
+          <b id="bulkN"></b>
+          <div class="proj"><button class="btn sm" onclick="pop('m1')">Add to project ▾</button>
+            <div class="menu" id="m1" style="top:auto;bottom:calc(100% + 6px)"><div class="mi" onclick="toast('Added to autism-ct')">autism-ct</div><div class="mi" onclick="toast('Added to sleep-review')">sleep-review</div><div class="sep"></div><div class="mi" onclick="toast('New project…')">＋ New project…</div></div></div>
+          <div class="proj"><button class="btn sm" onclick="pop('m2')">Tag ▾</button>
+            <div class="menu" id="m2" style="top:auto;bottom:calc(100% + 6px);min-width:200px"><div class="mi" onclick="toast('Tag added')">ADOS</div><div class="mi" onclick="toast('Tag added')">fMRI</div><div class="sep"></div><div class="mi" onclick="toast('Type a new tag…')">＋ New tag…</div></div></div>
+          <div class="proj"><button class="btn sm" onclick="pop('m3')">Export ▾</button>
+            <div class="menu" id="m3" style="top:auto;bottom:calc(100% + 6px);min-width:200px"><div class="mi" onclick="toast('Downloaded selection.bib')">BibTeX (.bib)</div><div class="mi" onclick="toast('Downloaded selection.ris')">RIS (.ris)</div><div class="mi" onclick="toast('Downloaded selection.csv')">CSV</div><div class="mi" onclick="toast('Copied APA reference list')">Copy as APA list</div></div></div>
+          <button class="btn sm" onclick="askSel()">Ask about these</button>
+          <span style="flex:1"></span>
+          <button class="btn sm ghost" onclick="clearSel()">Clear</button>
+        </div>
+        <div class="status" id="status"></div>
+      </div>
+
+      <!-- ASK -->
+      <div class="view" id="v-ask"><div class="scroll"><div class="ask">
+        <div class="askbox" data-n="15"><textarea id="askq" rows="2" placeholder="Ask a question across the library — answers cite the exact passages"></textarea><button class="btn primary" onclick="runAsk()">Ask ⏎</button></div>
+        <div class="scope"><span>Scope:</span><span class="pill on" id="scopePill">All papers · 14</span><span class="pill" onclick="toast('Would narrow to current filter')">Current filter</span><span class="pill" onclick="toast('Would narrow to selection')">Selection</span><span class="pill" onclick="toast('Would limit to full-text papers')">Full text only</span></div>
+        <div class="hint" id="askHint"><span class="pill" onclick="setAsk('What outcome measures do the trials use?')">What outcome measures do the trials use?</span><span class="pill" onclick="setAsk('What sample sizes are typical?')">What sample sizes are typical?</span><span class="pill" onclick="setAsk('Which papers report adverse events?')">Which papers report adverse events?</span></div>
+        <div id="askOut"></div>
+      </div></div></div>
+
+      <!-- FIGURES -->
+      <div class="view" id="v-figs">
+        <div class="tb"><b>Figure gallery</b><span class="cnt">follows the sidebar filters · click a figure to open its paper</span></div>
+        <div class="scroll"><div class="figs" id="figGrid" data-n="16"></div></div>
+      </div>
+
+      <!-- INSIGHTS -->
+      <div class="view" id="v-ins"><div class="scroll ins" data-n="17">
+        <div class="kpis">
+          <div class="kpi"><div class="v">14</div><div class="l">papers in library</div></div>
+          <div class="kpi"><div class="v">9</div><div class="l">with full text (64%)</div><div class="m"><i style="width:64%"></i></div></div>
+          <div class="kpi"><div class="v">7</div><div class="l">with figures (50%)</div><div class="m"><i style="width:50%"></i></div></div>
+          <div class="kpi"><div class="v">3</div><div class="l">unread</div><div class="m"><i style="width:21%"></i></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Papers per year</h3><div class="bars" id="yb"></div></div>
+          <div class="card"><h3>Top journals</h3><div id="jb"></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Needs attention</h3>
+            <div class="att"><div class="t"><div>5 papers are metadata-only</div><small>No full text → excluded from Ask and passage search</small></div><button class="btn sm" onclick="toast('Filters library to metadata-only')">Show</button></div>
+            <div class="att"><div class="t"><div>3 open-access papers have no PDF stored</div><small>PMCID present — can be fetched automatically</small></div><button class="btn sm primary" onclick="toast('Would run ingest for 3 PMC papers')">Fetch full text</button></div>
+            <div class="att"><div class="t"><div>1 possible duplicate pair</div><small>Same DOI, different PMIDs</small></div><button class="btn sm" onclick="toast('Would open a merge review')">Review</button></div>
+          </div>
+          <div class="card"><h3>Top tags</h3><div id="tb2"></div></div>
+        </div>
+      </div></div>
+
+      <!-- DETAIL -->
+      <div class="detail" id="detail"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="legend" id="legend"><h4>Review notes — proposed changes</h4><ul id="notes"></ul></div>
+
+<script>
+const I = {
+  star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>',
+  clip:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>',
+  fig:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg>',
+  pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+  ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15l6-6 6 6"/></svg>',
+  dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>',
+  all:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+  dot:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 017.5-2"/></svg>',
+};
+// SAMPLE DATA — placeholders, not real publications
+const P = [
+ {k:'a1',au:'Doe J',last:'Roe K',title:'Sample: Cortical thickness trajectories across childhood',journal:'Sample Journal of Neuroscience',year:2023,tags:['fMRI','ADOS'],st:'unread',star:1,ft:1,fg:4,pdf:1,oa:1,emb:1,proj:['autism-ct']},
+ {k:'a2',au:'Muster M',last:'Kim S',title:'Sample: Randomised trial of a parent-mediated intervention',journal:'Sample Clinical Trials',year:2022,tags:['RCT','ADOS'],st:'reading',star:1,ft:1,fg:3,pdf:1,oa:1,emb:1,proj:['autism-ct']},
+ {k:'a3',au:'Nowak P',last:'Silva R',title:'Sample: Sleep architecture and daytime behaviour',journal:'Sample Sleep Medicine',year:2021,tags:['sleep'],st:'read',star:0,ft:1,fg:2,pdf:0,oa:1,emb:1,proj:['sleep-review']},
+ {k:'a4',au:'Berg L',last:'Tan H',title:'Sample: Eye-tracking markers of social attention',journal:'Sample Developmental Science',year:2021,tags:['eye-tracking'],st:'read',star:0,ft:1,fg:0,pdf:1,oa:0,emb:1,proj:['autism-ct']},
+ {k:'a5',au:'Ito Y',last:'Lopez C',title:'Sample: Meta-analysis of outcome measures in early intervention',journal:'Sample Psychological Bulletin',year:2020,tags:['meta-analysis','RCT'],st:'unread',star:0,ft:1,fg:5,pdf:1,oa:0,emb:1,proj:['autism-ct']},
+ {k:'a6',au:'Chen W',last:'Park J',title:'Sample: Functional connectivity in adolescents',journal:'Sample NeuroImage',year:2020,tags:['fMRI'],st:'read',star:0,ft:0,fg:0,pdf:0,oa:0,emb:0,proj:[]},
+ {k:'a7',au:'Rossi A',last:'Ng T',title:'Sample: Melatonin dosing in paediatric sleep disorders',journal:'Sample Sleep Medicine',year:2019,tags:['sleep','RCT'],st:'unread',star:0,ft:0,fg:0,pdf:0,oa:1,emb:0,proj:['sleep-review']},
+ {k:'a8',au:'Haas B',last:'Wolf E',title:'Sample: Genetic architecture of neurodevelopmental conditions',journal:'Sample Nature Genetics',year:2019,tags:['genetics'],st:'read',star:1,ft:1,fg:6,pdf:1,oa:0,emb:1,proj:[]},
+ {k:'a9',au:'Okafor D',last:'Meyer F',title:'Sample: Diagnostic stability from age 2 to 9',journal:'Sample JAACAP',year:2018,tags:['ADOS','longitudinal'],st:'read',star:0,ft:1,fg:1,pdf:1,oa:1,emb:1,proj:['autism-ct']},
+ {k:'a10',au:'Larsen K',last:'Dubois M',title:'Sample: Screening tools compared in primary care',journal:'Sample Pediatrics',year:2018,tags:['screening'],st:'read',star:0,ft:0,fg:0,pdf:0,oa:0,emb:0,proj:[]},
+ {k:'a11',au:'Sato H',last:'Ali N',title:'Sample: EEG biomarkers of treatment response',journal:'Sample Biological Psychiatry',year:2017,tags:['EEG','RCT'],st:'unread',star:0,ft:1,fg:3,pdf:0,oa:1,emb:1,proj:['autism-ct']},
+ {k:'a12',au:'Weber T',last:'Costa L',title:'Sample: Sensory processing questionnaire validation',journal:'Sample J Autism Dev Disord',year:2016,tags:['ADOS'],st:'read',star:0,ft:0,fg:0,pdf:0,oa:0,emb:0,proj:[]},
+ {k:'a13',au:'Novak Z',last:'Fischer A',title:'Sample: Long-term follow-up of early behavioural therapy',journal:'Sample Clinical Trials',year:2015,tags:['longitudinal','RCT'],st:'read',star:0,ft:1,fg:2,pdf:1,oa:0,emb:1,proj:['autism-ct']},
+ {k:'a14',au:'Yilmaz E',last:'Brown D',title:'Sample: Prevalence estimates across regions',journal:'Sample Lancet Psychiatry',year:2014,tags:['epidemiology'],st:'read',star:0,ft:0,fg:0,pdf:0,oa:0,emb:0,proj:[]},
+];
+const NOTES = [
+ ['Project switcher','Projects exist (autism-ct, …) but the dashboard has no way to see or switch to them. Switcher shows which library you are looking at, with counts, and lets you create a project.'],
+ ['One search bar, two modes','Filter (today’s substring search + field prefixes) and Ask (hybrid semantic search from query.py). Replaces the hidden “?” help popover: prefix hints appear as autocomplete chips. Add tag: as a prefix.'],
+ ['Snapshot age + refresh','Today the pill says “Synced”, which is untrue: the page is a static snapshot. Show build time and “N new since” so you know when it is stale; with --serve, one-click refresh.'],
+ ['Rail actually navigates','Today “Notes” and “Discover” do nothing. Replace with real views: Library, Ask, Figures, Insights.'],
+ ['Availability filters','Kept, but combinable with tags/year/smart views (today: one at a time per group). Counts now respect the other active filters.'],
+ ['Tags: searchable, all visible, multi-select','Today: top 8 tags with count>1, no counts shown, single-select, the “+” does nothing. Now: filter box, “show all”, counts, click to add, Shift-click to exclude.'],
+ ['Year histogram','Click-drag to set a year range instead of typing year:2018-2022. Bars in accent = inside range.'],
+ ['Active-filter chips','Shows exactly what is filtering the list, each removable, plus “Clear all”. Today filters are scattered (sidebar highlight + search text) so an empty list is confusing.'],
+ ['View switcher','Table / Figures / Cards. Figure covers already exist but are only visible in the detail panel.'],
+ ['Column picker','Fixed 7 columns today. Let users show Tags, Status, Added date, Abstract snippet; remember choice.'],
+ ['Export the view','Export whole filtered list (.bib / RIS / CSV), not only checked rows via “Copy BibTeX”.'],
+ ['Reading status + star','Unread / reading / read and a star. Unread shown bold with an accent dot. Persisted to the library (via --serve), not just browser storage.'],
+ ['Coverage chips','Four cryptic icons → same icons, but with a legend tooltip; hover explains, and an off icon is an actionable gap (click ⚠ to fetch full text / attach PDF).'],
+ ['Bulk actions','Selecting rows today offers only “Copy BibTeX”. Add: add to project, tag, export formats, ask about selection, remove.'],
+ ['Ask the library','The backend already does hybrid RAG (query.py) — the dashboard ignores it. Answers cite numbered passages with section + paper, scope chips (all / filter / selection / full-text only).'],
+ ['Figure gallery','Browse every extracted figure with its caption; click opens the paper. Great for finding “the forest plot” without opening 30 papers.'],
+ ['Insights','Library health at a glance: coverage %, papers per year, top journals/tags, and a “Needs attention” list with one-click fixes (fetch missing full text, duplicates).'],
+ ['Hover quick actions','Open PDF, copy citation, open DOI without opening the detail panel. Right-click menu stays.'],
+ ['Detail: prev / next','j / k or ↑ / ↓ moves through the list with the panel open; Esc closes it. Today you must click each row.'],
+ ['Cite tab: styles','BibTeX only today. Add APA / Vancouver / RIS with live preview (cite.py already exists).'],
+ ['Notes persist','Today notes live in localStorage: lost on another browser or after regeneration. With --serve, save to papers/<key>/notes.md; show where they are stored.'],
+ ['Related papers','“More like this” using the paper’s own embedding — the vectors are already in Chroma.'],
+];
+let S={q:'',view:'lib',sv:'all',av:null,tags:new Set(),yr:null,sort:'year',dir:-1,sel:new Set(),open:null,tab:'info',proj:'Main library',mode:'filter'};
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
+function pop(id){const m=$(id),on=m.classList.contains('show');document.querySelectorAll('.menu').forEach(x=>x.classList.remove('show'));if(!on)m.classList.add('show')}
+document.addEventListener('click',e=>{if(!e.target.closest('.proj'))document.querySelectorAll('.menu').forEach(x=>x.classList.remove('show'))});
+
+const scopeP=()=>P.filter(p=>S.proj==='Main library'||p.proj.includes(S.proj));
+const SV={
+ all:['All papers',p=>true],
+ unread:['Unread',p=>p.st==='unread'],
+ star:['Starred',p=>p.star],
+ recent:['Added this week',p=>['a1','a2','a5'].includes(p.k)],
+ attn:['Needs attention',p=>!p.ft||(p.oa&&!p.pdf)],
+};
+const AV={ft:['Full text',p=>p.ft],meta:['Metadata only',p=>!p.ft],fg:['Has figures',p=>p.fg>0],pdf:['Has PDF',p=>p.pdf],oa:['Open access',p=>p.oa]};
+
+function match(p){
+  if(S.sv!=='all'&&!SV[S.sv][1](p))return false;
+  if(S.av&&!AV[S.av][1](p))return false;
+  for(const t of S.tags)if(!p.tags.includes(t))return false;
+  if(S.yr&&(p.year<S.yr[0]||p.year>S.yr[1]))return false;
+  if(S.q&&S.mode==='filter'){
+    let q=S.q,m;
+    const ym=q.match(/year:(>=|<=|>|<)?(\d{4})(?:-(\d{4}))?/i);
+    if(ym){const n=+ym[2];const ok=ym[3]?p.year>=n&&p.year<=+ym[3]:{'>=':p.year>=n,'<=':p.year<=n,'>':p.year>n,'<':p.year<n}[ym[1]]??p.year===n;if(!ok)return false;q=q.replace(ym[0],'')}
+    const tm=q.match(/tag:(\S+)/i);if(tm){if(!p.tags.some(t=>t.toLowerCase()===tm[1].toLowerCase()))return false;q=q.replace(tm[0],'')}
+    q=q.trim().toLowerCase();
+    if(q&&![p.title,p.au,p.last,p.journal,p.year,p.tags.join(' ')].join(' ').toLowerCase().includes(q))return false;
+  }
+  return true;
+}
+const list=()=>{const l=scopeP().filter(match);const k=S.sort,d=S.dir;
+  l.sort((a,b)=>d*(k==='year'?a.year-b.year:String(a[k==='au'?'au':k]).localeCompare(String(b[k==='au'?'au':k]))));return l};
+const MID=['Smith A','Jones B','Garcia C','Lee D'];
+const authorsOf=p=>[p.au,...MID.slice(0,2+(p.year%3)),p.last];
+const authCell=p=>{const a=authorsOf(p);const rest=a.slice(1,3).map(esc);return `<span class="fa" title="First author">${hl(a[0],S.q)}</span>${rest.length?', '+rest.join(', '):''}${a.length>3?' et al.':''}`};
+const hl=(s,q)=>{s=esc(s);if(!q||S.mode!=='filter')return s;const w=q.replace(/(year|tag):\S+/gi,'').trim();if(!w)return s;return s.replace(new RegExp('('+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>')};
+
+function renderSide(){
+  const base=scopeP();
+  $('sv').innerHTML=Object.entries(SV).map(([k,[l,f]])=>`<div class="si${S.sv===k?' on':''}" data-sv="${k}">${k==='star'?I.star:k==='attn'?I.warn:I.all}<span class="n">${l}</span><span class="c${k==='attn'?' warn':''}">${base.filter(f).length}</span></div>`).join('');
+  $('av').innerHTML=Object.entries(AV).map(([k,[l,f]])=>`<div class="si${S.av===k?' on':''}" data-av="${k}">${I.dot}<span class="n">${l}</span><span class="c">${base.filter(f).length}</span></div>`).join('');
+  const cnt={};base.forEach(p=>p.tags.forEach(t=>cnt[t]=(cnt[t]||0)+1));
+  const fq=$('tagq').value.toLowerCase(),all=$('tagAll').dataset.all==='1';
+  let tags=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).filter(([t])=>t.toLowerCase().includes(fq));
+  if(!all&&!fq)tags=tags.slice(0,6);
+  const cols=['#f5a35c','#7adff9','#8bc78e','#b79aef','#f0899a','#e0c56f'];
+  $('tg').innerHTML=tags.map(([t,c],i)=>`<div class="si${S.tags.has(t)?' on':''}" data-tag="${t}"><span class="dot" style="background:${cols[i%6]}"></span><span class="n">${t}</span><span class="c">${c}</span></div>`).join('')||'<div style="padding:6px 8px;color:var(--text-faint)">No tags match</div>';
+  $('tagAll').textContent=all?'show top 6':`show all (${Object.keys(cnt).length})`;
+  const yrs=[...Array(11)].map((_,i)=>2014+i),yc=yrs.map(y=>base.filter(p=>p.year===y).length),mx=Math.max(...yc,1);
+  $('hist').innerHTML=yrs.map((y,i)=>`<i data-y="${y}" title="${y}: ${yc[i]}" class="${!S.yr||(y>=S.yr[0]&&y<=S.yr[1])?'in':''}" style="height:${Math.max(6,yc[i]/mx*100)}%"></i>`).join('');
+  $('yrLbl').textContent=S.yr?`${S.yr[0]}–${S.yr[1]}`:'';
+  $('projName').textContent=S.proj;$('projCnt').textContent=base.length+' papers';
+}
+function renderChips(){
+  const c=[];
+  if(S.sv!=='all')c.push(['sv',SV[S.sv][0]]);
+  if(S.av)c.push(['av',AV[S.av][0]]);
+  S.tags.forEach(t=>c.push(['tag:'+t,'tag: '+t]));
+  if(S.yr)c.push(['yr',`year ${S.yr[0]}–${S.yr[1]}`]);
+  $('chips').innerHTML=c.map(([k,l])=>`<span class="chip">${esc(l)}<button data-rm="${k}" title="Remove">×</button></span>`).join('')+(c.length>1?'<button class="btn sm ghost" data-rm="all">Clear all</button>':'');
+}
+function renderRows(){
+  const l=list(),all=scopeP().length;
+  $('cnt').textContent=`${l.length} of ${all} references`;
+  $('rows').innerHTML=l.length?l.map(p=>`<tr class="r${p.st==='unread'?' unread':''}${S.open===p.k?' sel':''}" data-k="${p.k}">
+   <td><span class="cb${S.sel.has(p.k)?' on':''}" data-cb="${p.k}"></span></td>
+   <td><button class="star${p.star?' on':''}" data-star="${p.k}" title="Star">${I.star}</button></td>
+   <td><span class="st ${p.st}" title="${p.st}"></span></td>
+   <td><div class="cov">
+     <span class="cv ${p.ft?'ft':'off'}" title="${p.ft?'Full text ingested':'Metadata only — click to fetch full text'}">${I.clip}</span>
+     <span class="cv ${p.fg?'fg':'off'}" title="${p.fg?p.fg+' figures':'No figures'}">${I.fig}</span>
+     <span class="cv ${p.pdf?'pf':'off'}" title="${p.pdf?'PDF stored':'No PDF'}">${I.pdf}</span>
+     <span class="cv ${p.oa?'fg':'off'}" title="${p.oa?'Open access':'Closed access'}">${I.lock}</span>
+     ${p.oa&&!p.pdf?`<span class="cv warnicon" data-k="${p.k}" style="color:var(--accent);cursor:help">${I.warn}</span>`:''}
+   </div></td>
+   <td class="au" style="max-width:230px">${authCell(p)}</td>
+   <td class="au" style="max-width:110px">${hl(p.last,S.q)}</td>
+   <td><div class="ttl">${hl(p.title,S.q)}</div></td>
+   <td class="jn">${hl(p.journal,S.q)}</td>
+   <td style="color:var(--text-dim)">${p.year}</td>
+   <td>${p.tags.map(t=>`<span class="tg">${t}</span>`).join('')}
+     <div class="qa" ${p.k==='a1'?'data-n="18"':''}><button title="Open PDF" onclick="event.stopPropagation();toast('Opens source.pdf')">${I.pdf}</button><button title="Open DOI" onclick="event.stopPropagation();toast('Opens DOI')">${I.ext}</button><button title="Copy citation" onclick="event.stopPropagation();toast('Citation copied')">${I.copy}</button></div></td>
+  </tr>`).join(''):`<tr><td colspan="10" style="padding:40px;text-align:center;color:var(--text-faint)">No references match these filters.<br><br><button class="btn" data-rm="all">Clear all filters</button></td></tr>`;
+  const n=S.sel.size;$('bulk').classList.toggle('on',n>0);$('bulkN').textContent=n+' selected';
+  const st=$('status');st.classList.toggle('hide',n>0);
+  st.innerHTML=`Showing <b>${l.length}</b> · <b>${l.filter(p=>p.ft).length}</b> full text · <b>${l.filter(p=>p.fg).length}</b> with figures · <b>${l.filter(p=>p.pdf).length}</b> with PDF <span style="float:right"><span class="kbd">j</span> <span class="kbd">k</span> navigate · <span class="kbd">x</span> select · <span class="kbd">s</span> star · <span class="kbd">/</span> search</span>`;
+  $('cbAll').classList.toggle('on',l.length>0&&l.every(p=>S.sel.has(p.k)));
+}
+function renderDetail(){
+  const d=$('detail'),p=P.find(x=>x.k===S.open);d.classList.toggle('on',!!p);if(!p)return;
+  const l=list(),i=l.findIndex(x=>x.k===p.k);
+  const tabs=[['info','Details'],['cite','Cite'],['pdf','PDF'],['figs','Figures'],['notes','Notes'],['rel','Related']];
+  let b='';
+  if(S.tab==='info')b=`
+   <div style="display:flex;justify-content:space-between;align-items:center"><span class="kick">${esc(p.journal)} ${p.year}</span><span class="pill ${p.oa?'on':''}" style="cursor:default">${p.oa?'Open access':'Closed access'}</span></div>
+   <h2 class="dt">${esc(p.title)}</h2><div class="da">${authorsOf(p).map((n,i,a)=>i===0?`<span class="fa">${esc(n)}</span>`:esc(n)).join(' ; ')}</div>
+   <div class="row2" ${''}>
+     <span class="pill ${p.st==='unread'?'on':''}" data-set="unread">● Unread</span><span class="pill ${p.st==='reading'?'on':''}" data-set="reading">◐ Reading</span><span class="pill ${p.st==='read'?'on':''}" data-set="read">○ Read</span>
+     <span class="pill ${p.star?'on':''}" data-star="${p.k}">★ Star</span></div>
+   <div class="box"><div class="bl">Abstract</div><div class="ab">Placeholder abstract text for the mockup. In the real dashboard this is the paper’s abstract, with search terms highlighted and a collapse control for long ones.</div></div>
+   <div class="bl">Tags</div><div class="row2">${p.tags.map(t=>`<span class="pill on">${t} ×</span>`).join('')}<span class="pill" onclick="toast('Tag picker with autocomplete')">＋ tag</span></div>
+   <div class="bl">Projects</div><div class="row2">${p.proj.map(t=>`<span class="pill on">${t}</span>`).join('')||'<span style="color:var(--text-faint)">Not in any project</span>'}<span class="pill" onclick="toast('Add to project…')">＋ add</span></div>
+   <div class="bl">Data in library</div>
+   <div class="box" style="padding:4px 12px">
+    ${[[p.ft,'Full text ingested','No full text — abstract only'],[p.pdf,'Source PDF stored','No PDF stored'],[p.fg,p.fg+' figures extracted','No figures'],[p.emb,'Embedded — searchable in Ask','Not embedded — excluded from Ask']].map(([o,y,n])=>`<div style="display:flex;gap:9px;padding:7px 0;color:${o?'var(--text)':'var(--text-faint)'}"><span style="color:${o?'var(--accent)':'inherit'}">${o?'✓':'–'}</span>${o?y:n}${!o&&(n.includes('PDF')||n.includes('full'))?`<a href="#" style="margin-left:auto;color:var(--accent)" onclick="toast('Would fetch / attach');return false">Fix</a>`:''}</div>`).join('')}
+   </div>`;
+  if(S.tab==='cite')b=`<div class="kick">Cite this reference</div>
+   <div style="display:flex;gap:8px;margin:10px 0" data-n="19"><select id="cs" onchange="renderDetail()"><option>BibTeX</option><option>APA 7</option><option>Vancouver</option><option>RIS</option></select><button class="btn primary" onclick="toast('Copied')">Copy</button><button class="btn" onclick="toast('Downloaded')">Download</button></div>
+   <pre class="code">${(()=>{const s=($('cs')||{}).value||'BibTeX';return s==='BibTeX'?`@article{${p.au.split(' ')[0].toLowerCase()}${p.year},\n  author = {${p.au}},\n  title = {${p.title}},\n  journal = {${p.journal}},\n  year = {${p.year}}\n}`:s==='APA 7'?`${p.au}, & ${p.last} (${p.year}). ${p.title}. ${p.journal}.`:s==='Vancouver'?`${p.au}, ${p.last}. ${p.title}. ${p.journal}. ${p.year}.`:`TY  - JOUR\nAU  - ${p.au}\nTI  - ${p.title}\nJO  - ${p.journal}\nPY  - ${p.year}\nER  -`})()}</pre>`;
+  if(S.tab==='pdf')b=p.pdf?`<div class="kick">PDF attachment</div><div class="box" style="margin-top:10px"><b>${p.k}.pdf</b><div style="color:var(--text-faint);margin:3px 0 10px">1.4 MB · 12 pages</div><button class="btn primary" onclick="toast('Opens PDF')">View PDF</button></div>`:`<div class="kick">PDF attachment</div><div class="box" style="margin-top:10px;border-style:dashed;text-align:center;padding:26px;color:var(--text-faint)">Drop a PDF here or click to add one<br><br>${p.oa?'<button class="btn primary" onclick="toast(\'Would fetch from PMC\')">Fetch open-access PDF</button>':''}</div>`;
+  if(S.tab==='figs')b=p.fg?`<div class="kick">${p.fg} figures</div><div class="fc" style="margin-top:10px"><div class="im" style="background:linear-gradient(135deg,#3a2a1a,#1a2a3a)">FIGURE 1</div><div class="cp">Sample caption for the first figure. Click to enlarge.</div></div>`:`<div class="box" style="text-align:center;color:var(--text-faint)">No figures extracted</div>`;
+  if(S.tab==='notes')b=`<div class="kick">Notes</div><textarea class="note" style="margin-top:10px" placeholder="Write a note… supports markdown">${esc(p.k==='a1'?'Key point: thickness trend differs by age band.\n\nTODO: compare to a2.':'')}</textarea><div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;color:var(--text-faint)" data-n="20"><span>Saved to <code style="font-family:var(--mono)">papers/${p.k}/notes.md</code></span><span class="pill on">✓ Saved</span></div>`;
+  if(S.tab==='rel')b=`<div class="kick" data-n="21">More like this</div><div style="height:10px"></div>${P.filter(x=>x.k!==p.k&&x.ft).slice(0,4).map((x,j)=>`<div class="rel" data-open="${x.k}"><span class="sc">${(0.86-j*.06).toFixed(2)}</span><div><b>${esc(x.title)}</b><small>${esc(x.au)} · ${x.year} · ${esc(x.journal)}</small></div></div>`).join('')}`;
+  d.innerHTML=`<div class="dtb" data-n="${S.tab==='info'?'22':''}">${tabs.map(([k,l])=>`<button class="dtab${S.tab===k?' on':''}" data-tab="${k}">${l}</button>`).join('')}<span class="sp"></span>
+    <span style="font-size:11px;color:var(--text-faint);margin-right:4px">${i+1}/${l.length}</span>
+    <button class="ib" id="prev" title="Previous (k)">${I.up}</button><button class="ib" id="next" title="Next (j)">${I.dn}</button><button class="ib" id="closeD" title="Close (Esc)">${I.x}</button></div>
+    <div class="dbody">${b}</div>`;
+}
+function renderFigs(){
+  const g=['linear-gradient(135deg,#3a2a1a,#1a2a3a)','linear-gradient(135deg,#1a3a2a,#2a1a3a)','linear-gradient(135deg,#3a1a2a,#1a3a3a)','linear-gradient(135deg,#2a2a3a,#3a2a1a)'];
+  const out=[];list().filter(p=>p.fg).forEach(p=>{for(let i=0;i<Math.min(p.fg,3);i++)out.push([p,i])});
+  $('figGrid').innerHTML=out.map(([p,i],j)=>`<div class="fc" data-open="${p.k}"><div class="im" style="background:${g[j%4]}">FIGURE ${i+1}</div><div class="cp">Sample caption text describing figure ${i+1} of this paper.<small>${esc(p.au)} · ${p.year} · ${esc(p.journal)}</small></div></div>`).join('')||'<div style="padding:40px;color:var(--text-faint)">No figures match the current filters.</div>';
+}
+function renderIns(){
+  const base=scopeP(),ys=[...Array(11)].map((_,i)=>2014+i),mx=Math.max(...ys.map(y=>base.filter(p=>p.year===y).length),1);
+  $('yb').innerHTML=ys.map(y=>{const c=base.filter(p=>p.year===y).length;return `<div><span>${c||''}</span><i style="height:${c/mx*80}%"></i><span>'${String(y).slice(2)}</span></div>`}).join('');
+  const jc={};base.forEach(p=>jc[p.journal]=(jc[p.journal]||0)+1);
+  $('jb').innerHTML=Object.entries(jc).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([j,c])=>`<div class="hb"><span>${esc(j.replace('Sample ',''))}</span><i style="width:${c*40}px"></i><em>${c}</em></div>`).join('');
+  const tc={};base.forEach(p=>p.tags.forEach(t=>tc[t]=(tc[t]||0)+1));
+  $('tb2').innerHTML=Object.entries(tc).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([t,c])=>`<div class="hb"><span>${t}</span><i style="width:${c*30}px;background:var(--violet)"></i><em>${c}</em></div>`).join('');
+}
+const wp=document.createElement('div');wp.className='wpop';document.body.appendChild(wp);
+let wt;const hideW=()=>{wt=setTimeout(()=>wp.classList.remove('on'),160)};
+wp.addEventListener('mouseenter',()=>clearTimeout(wt));wp.addEventListener('mouseleave',hideW);
+document.addEventListener('mouseover',e=>{const w=e.target.closest('.warnicon');if(!w)return;clearTimeout(wt);
+  const p=P.find(x=>x.k===w.dataset.k),r=w.getBoundingClientRect();
+  wp.innerHTML=`<h5>${I.warn}PDF not stored</h5>This paper is open access (PMCID on record), but no PDF is in your library.<ul><li><i class="y">✓</i>Open access</li><li><i class="${p.ft?'y':'n'}">${p.ft?'✓':'–'}</i>${p.ft?'Full text ingested (from XML)':'No full text'}</li><li><i class="n">–</i>No source PDF stored</li></ul><button class="btn primary" data-fetch="${p.k}">Fetch PDF from PubMed Central</button>`;
+  wp.classList.add('on');const h=wp.offsetHeight;
+  wp.style.left=Math.min(r.left,innerWidth-wp.offsetWidth-10)+'px';
+  wp.style.top=(r.bottom+h+12>innerHeight?r.top-h-8:r.bottom+8)+'px'});
+document.addEventListener('mouseout',e=>{if(e.target.closest('.warnicon'))hideW()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-fetch]');if(b){wp.classList.remove('on');toast('Would fetch PDF for '+b.dataset.fetch+' and attach it (no re-ingest)')}});
+function renderAll(){renderSide();renderChips();renderRows();renderDetail();renderFigs();renderIns()}
+
+function go(v){S.view=v;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));document.querySelectorAll('.rb').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v!=='lib'){S.open=null;renderDetail()}
+  S.mode=v==='ask'?'ask':'filter';document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.mode));
+  $('q').placeholder=S.mode==='ask'?'Ask a question about your papers…':'Filter by title, author, DOI, PMID…   try  year:>=2020  tag:ADOS';
+  $('scopePill').textContent=`${S.proj==='Main library'?'All papers':S.proj} · ${scopeP().length}`;renderRows()}
+function setAsk(t){$('askq').value=t;runAsk()}
+function askSel(){go('ask');$('scopePill').textContent=`Selection · ${S.sel.size}`}
+function runAsk(){
+  const q=$('askq').value.trim()||'What outcome measures do the trials use?';$('askq').value=q;$('askHint').style.display='none';
+  $('askOut').innerHTML='<div class="ans">Searching 9 full-text papers…</div>';
+  setTimeout(()=>{$('askOut').innerHTML=`
+   <div class="ans"><p>Sample answer for the mockup. Trials most often report a clinician-rated severity scale <span class="cite">1</span><span class="cite">3</span>, complemented by parent-report questionnaires <span class="cite">2</span>. Two studies add a behavioural coding measure recorded from video <span class="cite">4</span>.</p>
+   <p style="color:var(--text-faint);font-size:12px;margin:0">Answer is grounded only in the passages below. <a href="#" style="color:var(--accent)" onclick="toast('Saved to notes');return false">Save to notes</a> · <a href="#" style="color:var(--accent)" onclick="toast('Copied with references');return false">Copy with references</a></p></div>
+   ${[[P[1],'Methods › Outcome measures','Sample passage: primary outcome was change on a clinician-rated scale at 12 weeks…'],[P[4],'Results › Table 2','Sample passage: parent-report questionnaires were pooled across studies…'],[P[12],'Methods','Sample passage: clinician-rated severity was assessed at baseline and follow-up…'],[P[0],'Methods › Measures','Sample passage: video-based behavioural coding by two blinded raters…']].map(([p,sec,t],i)=>`<div class="src"><div class="h"><span class="n">${i+1}</span>${esc(p.title)}</div><q>“${t}”</q><small>${esc(p.au)} · ${p.year} · ${sec} · <a href="#" style="color:var(--accent)" data-open="${p.k}">open paper</a></small></div>`).join('')}`},600)}
+
+// events
+document.addEventListener('click',e=>{
+  const t=e.target,c=s=>t.closest(s);
+  if(c('[data-rm]')){const k=c('[data-rm]').dataset.rm;if(k==='all'){S.sv='all';S.av=null;S.tags.clear();S.yr=null;S.q='';$('q').value=''}else if(k==='sv')S.sv='all';else if(k==='av')S.av=null;else if(k==='yr')S.yr=null;else S.tags.delete(k.slice(4));renderAll();return}
+  if(c('[data-sv]')){S.sv=c('[data-sv]').dataset.sv;renderAll();return}
+  if(c('[data-av]')){const k=c('[data-av]').dataset.av;S.av=S.av===k?null:k;renderAll();return}
+  if(c('[data-tag]')){const k=c('[data-tag]').dataset.tag;S.tags.has(k)?S.tags.delete(k):S.tags.add(k);renderAll();return}
+  if(c('#tagAll')){t.dataset.all=t.dataset.all==='1'?'0':'1';renderSide();return}
+  if(c('#hist i')){const y=+t.dataset.y;S.yr=S.yr&&S.yr[0]===y&&S.yr[1]===y?null:(S.yr&&!e.shiftKey?[y,y]:S.yr?[Math.min(S.yr[0],y),Math.max(S.yr[1],y)]:[y,y]);renderAll();return}
+  if(c('.rb')){go(c('.rb').dataset.v);return}
+  if(c('#mode button')){const m=c('#mode button').dataset.m;if(m==='ask')go('ask');else go('lib');return}
+  if(c('[data-cb]')){e.stopPropagation();const k=c('[data-cb]').dataset.cb;S.sel.has(k)?S.sel.delete(k):S.sel.add(k);renderRows();return}
+  if(c('#cbAll')){const l=list(),all=l.every(p=>S.sel.has(p.k));l.forEach(p=>all?S.sel.delete(p.k):S.sel.add(p.k));renderRows();return}
+  if(c('[data-star]')){e.stopPropagation();const p=P.find(x=>x.k===c('[data-star]').dataset.star);p.star=p.star?0:1;renderAll();return}
+  if(c('[data-set]')){P.find(x=>x.k===S.open).st=c('[data-set]').dataset.set;renderAll();return}
+  if(c('[data-tab]')){S.tab=c('[data-tab]').dataset.tab;renderDetail();return}
+  if(c('#closeD')){S.open=null;renderRows();renderDetail();return}
+  if(c('#prev')){step(-1);return}if(c('#next')){step(1);return}
+  if(c('[data-open]')){const k=c('[data-open]').dataset.open;if(S.view!=='lib')go('lib');S.open=k;S.tab='info';renderRows();renderDetail();return}
+  if(c('th.s')){const k=c('th.s').dataset.k;if(S.sort===k)S.dir*=-1;else{S.sort=k;S.dir=1}document.querySelectorAll('th.s').forEach(h=>{h.classList.toggle('on',h.dataset.k===S.sort);h.textContent=h.textContent.replace(/ [↑↓]/,'')+(h.dataset.k===S.sort?(S.dir>0?' ↑':' ↓'):'')});renderRows();return}
+  if(c('tr.r')){const k=c('tr.r').dataset.k;S.open=S.open===k?null:k;S.tab='info';if(S.open&&P.find(x=>x.k===k).st==='unread'){/* mark as reading on open */}renderRows();renderDetail();return}
+  if(c('#projBtn')){pop('projMenu');return}
+  if(c('#projMenu .mi[data-p]')){const m=c('.mi[data-p]');S.proj=m.dataset.p;document.querySelectorAll('#projMenu .mi').forEach(x=>x.classList.toggle('on',x===m));S.sel.clear();S.open=null;renderAll();go(S.view);toast('Now viewing: '+S.proj);return}
+});
+function step(d){const l=list(),i=l.findIndex(p=>p.k===S.open),n=l[Math.max(0,Math.min(l.length-1,i+d))];if(n){S.open=n.k;renderRows();renderDetail();document.querySelector(`tr[data-k="${n.k}"]`)?.scrollIntoView({block:'nearest'})}}
+$('q').addEventListener('input',e=>{S.q=e.target.value;if(S.mode==='filter'){if(S.view!=='lib')go('lib');renderAll()}});
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter'&&S.mode==='ask'){$('askq').value=e.target.value;runAsk()}});
+$('tagq').addEventListener('input',renderSide);
+document.addEventListener('keydown',e=>{
+  const typing=/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();$('q').focus();return}
+  if(e.key==='Escape'){if(typing)document.activeElement.blur();else if(S.open){S.open=null;renderRows();renderDetail()}else if(S.sel.size)clearSel();return}
+  if(typing||S.view!=='lib')return;
+  if(e.key==='j'||e.key==='ArrowDown'){e.preventDefault();step(S.open?1:0)}
+  if(e.key==='k'||e.key==='ArrowUp'){e.preventDefault();step(-1)}
+  if(e.key==='x'&&S.open){S.sel.has(S.open)?S.sel.delete(S.open):S.sel.add(S.open);renderRows()}
+  if(e.key==='s'&&S.open){const p=P.find(x=>x.k===S.open);p.star=p.star?0:1;renderAll()}
+  if(e.key==='/'){e.preventDefault();$('q').focus()}
+});
+function clearSel(){S.sel.clear();renderRows()}
+function toggleAnnot(){document.body.classList.toggle('annot');$('legend').classList.toggle('on');$('annotBtn').classList.toggle('primary')}
+$('notes').innerHTML=NOTES.map((n,i)=>`<li><span class="num">${i+1}</span><div><b>${n[0]}.</b> ${n[1]}</div></li>`).join('');
+renderAll();
+</script>
+</body></html>
