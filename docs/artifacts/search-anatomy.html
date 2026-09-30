@@ -1,0 +1,249 @@
+<title>PubMed Search Anatomy</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column; numbered pipeline (question -> PMIDs), sensitivity dial cards, then one SVG of the acquisition/retrieval boundary. House tokens shared with project-flow.html. */
+:root {
+  --bg: #f7f6f3;
+  --surface: #ffffff;
+  --fg: #24292d;
+  --muted: #6b7280;
+  --line: #d9d7d0;
+  --accent: #1f6f54;        /* library green: acquisition side */
+  --accent2: #8a5a17;       /* amber: retrieval side */
+  --code-bg: #eef0ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1d1e; --surface: #232628; --fg: #e6e4de; --muted: #9aa1a6;
+    --line: #3a3e40; --accent: #5cc39a; --accent2: #d9a558; --code-bg: #2b2f30;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1d1e; --surface: #232628; --fg: #e6e4de; --muted: #9aa1a6;
+  --line: #3a3e40; --accent: #5cc39a; --accent2: #d9a558; --code-bg: #2b2f30;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  line-height: 1.55; margin: 0; padding-block: 40px 64px; padding-inline: 20px;
+}
+main { max-width: 860px; margin: 0 auto; }
+h1 { font-size: 1.7rem; font-weight: 600; margin: 0 0 4px; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0 0 36px; max-width: 62ch; }
+h2 { font-size: 1.15rem; font-weight: 600; margin: 44px 0 16px; }
+code, pre { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.86em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 12px 14px; overflow-x: auto; margin: 10px 0 0;
+}
+pre code { background: none; padding: 0; }
+
+.step { display: flex; gap: 16px; margin-bottom: 8px; }
+.step .num {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  border: 1.5px solid var(--accent); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 0.9rem; margin-top: 2px;
+}
+.step.human .num { border-color: var(--accent2); color: var(--accent2); }
+.step .body { flex: 1; min-width: 0; padding-bottom: 22px; border-left: 1px solid var(--line); margin-left: -31px; padding-left: 47px; }
+.step:last-child .body { border-left-color: transparent; }
+.step h3 { margin: 4px 0 4px; font-size: 1rem; font-weight: 600; }
+.step p { margin: 4px 0; color: var(--fg); max-width: 68ch; }
+.side { color: var(--muted); font-size: 0.88rem; }
+.tag {
+  display: inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; border-radius: 4px; padding: 1px 7px; vertical-align: 1px;
+}
+.tag.code { color: var(--accent); border: 1px solid var(--accent); }
+.tag.llm { color: var(--accent2); border: 1px solid var(--accent2); }
+
+.sens-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 16px; }
+.sens-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.sens-card.default { border-color: var(--accent); }
+.sens-card h3 { margin: 0 0 2px; font-size: 1rem; font-weight: 600; }
+.sens-card h3 small { color: var(--muted); font-weight: 400; font-size: 0.78rem; margin-left: 4px; }
+.sens-card p { margin: 6px 0 0; font-size: 0.9rem; }
+.sens-card .mech { color: var(--muted); font-size: 0.84rem; margin-top: 8px; }
+
+figure { margin: 16px 0 0; }
+figure svg { max-width: 100%; height: auto; display: block; }
+figcaption { color: var(--muted); font-size: 0.88rem; margin-top: 10px; max-width: 68ch; }
+.diagram-scroll { overflow-x: auto; }
+.note {
+  border-left: 3px solid var(--accent2); background: var(--surface);
+  border-radius: 0 6px 6px 0; padding: 12px 16px; margin-top: 24px; max-width: 68ch;
+}
+.note p { margin: 4px 0; }
+</style>
+
+<main>
+<h1>PubMed Search Anatomy</h1>
+<p class="sub">How a question becomes a reproducible PMID set: framework
+(PICO&thinsp;/&thinsp;PECO&thinsp;/&thinsp;PCC) shapes the concepts, sensitivity shapes the
+compilation, and none of it ever touches retrieval. Engine:
+<code>scripts/lib/pubmed_query.py</code>.</p>
+
+<h2>From question to PMIDs</h2>
+
+<div class="step human">
+  <div class="num">1</div>
+  <div class="body">
+    <h3>Pick a framework <span class="tag llm">Claude / you</span></h3>
+    <p>Intervention question &rarr; PICO, exposure &rarr; PECO, scoping &rarr; PCC. The choice
+    lives entirely in this step: it decides <em>which concepts exist</em> (PCC has no outcome
+    slot), and the code downstream never branches on it. <code>framework</code> is stored in
+    the result as provenance only.</p>
+  </div>
+</div>
+
+<div class="step human">
+  <div class="num">2</div>
+  <div class="body">
+    <h3>Write the concepts <span class="tag llm">Claude / you</span></h3>
+    <p>paper-rag has no LLM client, so <code>question</code> mode is unimplemented — a human
+    or Claude turns the question into <code>SearchConcept</code> groups. Each framework slot
+    becomes one <code>{name, terms}</code> object; <code>name</code> is a free-text label,
+    not a fixed vocabulary.</p>
+    <pre><code>[
+  {"name": "population",   "terms": ["autism spectrum disorder", "ASD"]},
+  {"name": "intervention", "terms": ["oxytocin"]},
+  {"name": "outcome",      "terms": ["social cognition"], "required": false}
+]</code></pre>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">3</div>
+  <div class="body">
+    <h3>Compile under a sensitivity <span class="tag code">code</span></h3>
+    <p><code>compile_concepts()</code> builds one Boolean query: OR within a concept
+    (MeSH heading + Title/Abstract synonyms), AND across concepts. Terms with
+    <code>expand: true</code> are looked up against the local MeSH index; hits add a
+    <code>[MeSH Terms]</code> clause alongside the free-text ones.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="num">4</div>
+  <div class="body">
+    <h3>ESearch, dedupe, record <span class="tag code">code</span></h3>
+    <p>The compiled query runs through ESearch; the result stores the PMIDs together with
+    the exact <code>pubmed_query</code>, mode, framework, sensitivity, and warnings — so the
+    search is re-runnable verbatim later. Optional <code>--funnel</code> adds cumulative
+    per-concept hit counts.</p>
+    <pre><code>"pubmed_query": "(\"Autism Spectrum Disorder\"[MeSH Terms] OR autism[Title/Abstract] OR ASD[Title/Abstract]) AND (\"Oxytocin\"[MeSH Terms] OR oxytocin[Title/Abstract]) AND (\"social cognition\"[Title/Abstract])"</code></pre>
+  </div>
+</div>
+
+<h2>The sensitivity dial</h2>
+<p class="side" style="max-width: 68ch;">One parameter, three positions
+(<code>Sensitivity = Literal["broad", "balanced", "precise"]</code>). It only exists in
+<code>concepts</code> mode; <code>direct</code> mode passes your query through untouched.</p>
+
+<div class="sens-grid">
+  <div class="sens-card">
+    <h3>broad <small>recall</small></h3>
+    <p>Keeps only <code>required: true</code> concepts and drops the optional ones — fewer
+    AND clauses, more hits.</p>
+    <p class="mech">Falls back to all concepts if none are marked required.
+    <code>_select_concepts()</code></p>
+  </div>
+  <div class="sens-card default">
+    <h3>balanced <small>default</small></h3>
+    <p>All concepts ANDed, every term kept. What you get when you don't ask.</p>
+    <p class="mech">No filtering at either level.</p>
+  </div>
+  <div class="sens-card">
+    <h3>precise <small>precision</small></h3>
+    <p>All concepts, but short ambiguous abbreviations (single token, &le;4 chars — "MRI",
+    "ASD") are dropped from the free-text clauses.</p>
+    <p class="mech">Never empties a group; emits a reduced-recall warning.
+    <code>_looks_like_ambiguous_abbreviation()</code></p>
+  </div>
+</div>
+
+<h2>Where the concepts stop: acquisition vs. retrieval</h2>
+
+<div class="diagram-scroll">
+<figure>
+<svg viewBox="0 0 840 330" role="img" aria-label="Concepts, framework, and sensitivity exist only in the acquisition pipeline that decides which papers enter the library; ask-time retrieval sends the raw question to BM25 and Chroma over ingested chunks and never sees them." fill="none">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="currentColor" stroke="none"/>
+    </marker>
+    <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent2)" stroke="none"/>
+    </marker>
+  </defs>
+
+  <!-- Acquisition container -->
+  <rect x="20" y="40" width="380" height="240" rx="8" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="36" y="28" fill="var(--accent)" font-size="13" font-weight="600">ACQUISITION — what enters the library</text>
+
+  <rect x="40" y="60" width="340" height="40" rx="6" stroke="currentColor"/>
+  <text x="56" y="85" fill="currentColor" font-size="12" font-family="monospace">framework → concepts → sensitivity</text>
+
+  <rect x="40" y="120" width="340" height="40" rx="6" stroke="currentColor"/>
+  <text x="56" y="145" fill="currentColor" font-size="12" font-family="monospace">Boolean query → ESearch → PMIDs</text>
+
+  <rect x="40" y="180" width="340" height="40" rx="6" stroke="currentColor"/>
+  <text x="56" y="205" fill="currentColor" font-size="12" font-family="monospace">triage → ingest (chunks, vectors, BM25)</text>
+
+  <line x1="210" y1="100" x2="210" y2="116" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="210" y1="160" x2="210" y2="176" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="40" y="258" fill="var(--muted)" font-size="12">sensitivity shapes the corpus, once, here</text>
+
+  <!-- Retrieval container -->
+  <rect x="470" y="40" width="350" height="240" rx="8" stroke="var(--accent2)" stroke-width="1.5"/>
+  <text x="486" y="28" fill="var(--accent2)" font-size="13" font-weight="600">RETRIEVAL — every ask</text>
+
+  <rect x="490" y="60" width="310" height="40" rx="6" stroke="currentColor"/>
+  <text x="506" y="85" fill="currentColor" font-size="12" font-family="monospace">raw question string (no compilation)</text>
+
+  <rect x="490" y="120" width="148" height="40" rx="6" stroke="currentColor"/>
+  <text x="504" y="145" fill="currentColor" font-size="12" font-family="monospace">bm25.py</text>
+  <rect x="652" y="120" width="148" height="40" rx="6" stroke="currentColor"/>
+  <text x="666" y="145" fill="currentColor" font-size="12" font-family="monospace">store.py</text>
+
+  <rect x="490" y="180" width="310" height="40" rx="6" stroke="currentColor"/>
+  <text x="506" y="205" fill="currentColor" font-size="12" font-family="monospace">hybrid rank → cited answer</text>
+
+  <line x1="560" y1="100" x2="562" y2="116" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="730" y1="100" x2="728" y2="116" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="564" y1="160" x2="600" y2="176" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="726" y1="160" x2="690" y2="176" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <text x="490" y="258" fill="var(--muted)" font-size="12">no SearchConcept, no MeSH, no sensitivity</text>
+
+  <!-- boundary arrow -->
+  <line x1="404" y1="200" x2="466" y2="200" stroke="var(--accent2)" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrA)"/>
+  <text x="435" y="188" fill="var(--accent2)" font-size="12" text-anchor="middle">corpus</text>
+
+  <!-- boundary label -->
+  <line x1="435" y1="40" x2="435" y2="150" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/>
+  <text x="435" y="312" fill="var(--muted)" font-size="12" text-anchor="middle">concepts never cross this line — only the papers they admitted do</text>
+</svg>
+<figcaption>Concepts and sensitivity are acquisition-only: they decide which papers get
+ingested. At ask time, <code>query.py</code> hands the question string as-is to BM25
+(<code>scripts/lib/bm25.py</code>) and Chroma (<code>scripts/lib/store.py</code>) over the
+already-ingested chunks — neither file references <code>SearchConcept</code> or sensitivity.
+The only link is indirect: a broad vs. precise search changes what the corpus contains, and
+therefore what retrieval can find.</figcaption>
+</figure>
+</div>
+
+<div class="note">
+  <p><strong>Framework is metadata downstream.</strong> All three frameworks compile
+  identically — the compiler sees only <code>{name, terms, required, expand}</code>. The one
+  structural difference is upstream: PCC has no outcome concept, so a scoping search simply
+  arrives with one fewer AND group.</p>
+  <p><strong>Reproducibility.</strong> The compiled <code>pubmed_query</code> is saved next
+  to the PMIDs in every search directory, so any search can be re-run exactly, regardless of
+  who wrote the concepts.</p>
+</div>
+</main>
