@@ -60,6 +60,7 @@ _CLAIM_FIELDS = (
     "uncertainty_interval",
     "study_design",
     "evidence_span",
+    "source_level",
 )
 
 
