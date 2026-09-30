@@ -32,6 +32,7 @@ export default defineConfig({
             { text: 'Ingesting Papers', link: '/guide/ingest' },
             { text: 'Searching PubMed', link: '/guide/pubmed-search' },
             { text: 'Asking Questions', link: '/guide/ask' },
+            { text: 'Extracting Claims', link: '/guide/extract-claims' },
             { text: 'Citing & Filtering', link: '/guide/cite-and-mine' },
             { text: 'Tags & Homes', link: '/guide/tags-and-homes' },
             { text: 'Dashboard', link: '/guide/dashboard' },

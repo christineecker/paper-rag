@@ -41,7 +41,8 @@ first — so ingesting the same PMID twice is safe and idempotent.
 
 ## Chunk types
 
-`/paper-rag:ingest` splits full text into chunks of three types, all filterable via
+`/paper-rag:ingest` splits full text into chunks of three types (a fourth, `claim`, is added by
+`/paper-rag:extract-claims`; see [Claims](#claims)), all filterable via
 `/paper-rag:ask --type`:
 
 | Type | Source | Notes |
@@ -49,6 +50,37 @@ first — so ingesting the same PMID twice is safe and idempotent.
 | `text` | docling's `HybridChunker` over the converted document | Most retrieval hits are this type. |
 | `figure` | `PictureItem` crops, PDF sources only | Always `0` for JATS XML / HTML sources — see [Ingesting Papers](/guide/ingest). |
 | `abstract` | the citation metadata fetch | Present even for metadata-only papers that have no full text. |
+
+## Claims
+
+A **claim** is one self-contained, atomic assertion that a paper itself makes or reports:
+a finding, effect size, comparison, method result, or stated conclusion. Claims are
+extracted by Claude after ingest (`/paper-rag:extract-claims`) and stored as `claim` rows
+beside the chunks. They are mostly drawn from a paper's Results and Discussion. Claims do not depend on any
+question: they are extracted once from the available abstract and full text, and are later
+searched to help answer whatever you ask.
+
+What counts as a claim:
+
+- **Standalone.** It names the population, exposure or intervention, comparator and
+  outcome explicitly (no "it" or "this drug") and includes numbers such as effect size,
+  CI, p and n when the source gives them.
+- **Faithful.** It says only what the paper states and keeps the paper's hedging
+  ("associated with", "suggests"). No outside knowledge.
+- **Grounded.** It cites the chunk ids that support it (`source_chunk_ids`) and a
+  verbatim `evidence_span` quoted from one of them.
+
+What does not: background and citations of other work, methods without results, and
+boilerplate. Extraction is prompt-guided, so a few background statements can still get
+through; nothing in the code blocks them.
+
+Each claim can also carry structured fields (`population`, `intervention`, `comparator`,
+`outcome`, `direction`, `effect_value`, `effect_measure`, `uncertainty_interval`,
+`study_design`), left out when the source does not state them, and a `source_level`
+of `abstract`, `fulltext` or `mixed`, derived from the chunks it cites. A claim is a
+pointer to the right paper and passage, not the quoted wording; see
+[Extracting Claims](/guide/extract-claims) for how they are made and checked, and
+[Claims in search](/guide/ask#claims) for how retrieval uses them.
 
 ## Embedding models
 

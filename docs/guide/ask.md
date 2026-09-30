@@ -149,6 +149,8 @@ Example — scope to a project tag with `--where` (see
 
 ## Claims
 
+See [Extracting Claims](/guide/extract-claims) for how claims are made and checked.
+
 Papers can carry extracted **claims**: short, standalone assertions written by Claude
 at ingest and stored as `claim` rows beside the chunks (see `/paper-rag:extract-claims`).
 Each claim records the ids of the chunks that support it (`source_chunk_ids`).
@@ -172,7 +174,9 @@ claim (and in `effect_value` / `uncertainty_interval`) must appear in those sour
 Optional structured fields (`population`, `intervention`, `comparator`, `outcome`,
 `direction`, `effect_value`, `effect_measure`, `uncertainty_interval`, `study_design`)
 are stored as metadata and returned on claim hits; they are for display and comparison,
-not for filtering.
+not for filtering. Each claim also gets a `source_level` (`abstract`, `fulltext` or
+`mixed`), derived from the types of the chunks it cites. It is stored as metadata, so
+`--where '{"source_level": "abstract"}'` works with `--type claim`.
 
 ## Embedding model
 

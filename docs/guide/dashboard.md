@@ -32,10 +32,17 @@ stars, and notes are stored in the browser (localStorage), not in the library.
   direction, study design and "effect size only". Selecting a claim shows its
   population / intervention / comparator / outcome, the effect, the verbatim evidence
   quote and its source section and page, with *Open paper* and *Copy with PMID*;
-- a **Claims** section in each paper's detail pane, and a "N claims extracted" row in
-  *Data in library*;
+- a **Claims** tab in each paper's detail pane (its own icon in the pane's toolbar, with
+  a dot when the paper has claims), and a "N claims extracted" row in *Data in library*;
 - **Insights** cards for claim coverage and direction of findings, a "without claims"
   attention row, and a **No claims** smart view in the sidebar.
+
+Each claim shows a `source_level` pill (`abstract`, `fulltext` or `mixed`) saying whether
+it was extracted from the abstract, the full text, or both. Claims stored before that
+field existed have no pill until `/paper-rag:extract-claims` is re-run for the paper.
+
+The detail pane's toolbar groups its tabs (Details, Cite, PDF, Figures, Claims, Notes) in
+a segmented control, apart from the position counter and prev/next/close buttons.
 
 Claim rows are read from Chroma metadata when the dashboard is built, so re-run
 `/paper-rag:dashboard` after `/paper-rag:extract-claims`. The chunk counts shown per

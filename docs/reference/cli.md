@@ -228,7 +228,7 @@ Retrieve chunks for a question via hybrid dense + BM25 search. Runs `scripts/que
 
 ## `/paper-rag:extract-claims`
 
-Store atomic claims for ingested papers. Claude reads the chunks, writes claims, re-reads each claim's source chunks to verify it, then `scripts/claims.py add` stores them as `claim` rows. Runs `scripts/claims.py`.
+Store atomic claims for ingested papers. Claude reads the chunks, writes claims, re-reads each claim's source chunks to verify it, then `scripts/claims.py add` stores them as `claim` rows. Runs `scripts/claims.py`. See [Extracting Claims](/guide/extract-claims) for the full walkthrough.
 
 **Syntax:** `/paper-rag:extract-claims <doc_key|pmid>` or `/paper-rag:extract-claims --all-missing`
 
@@ -237,7 +237,7 @@ Store atomic claims for ingested papers. Claude reads the chunks, writes claims,
 | Subcommand | Description |
 |---|---|
 | `chunks <doc_key\|pmid>` | List a paper's text and abstract chunks with ids. |
-| `add <doc_key\|pmid> [--file F] [--skip-span-check] [--skip-number-check]` | Replace the paper's claims from a JSON list. Rejects unknown `source_chunk_ids`, a missing or non-verbatim `evidence_span`, an invalid `direction`, and numbers not present in the source chunks. Optional structured fields are stored as metadata. |
+| `add <doc_key\|pmid> [--file F] [--skip-span-check] [--skip-number-check]` | Replace the paper's claims from a JSON list. Rejects unknown `source_chunk_ids`, a missing or non-verbatim `evidence_span`, an invalid `direction`, and numbers not present in the source chunks. Optional structured fields are stored as metadata, and `source_level` (`abstract`, `fulltext` or `mixed`) is derived from the cited chunks. |
 | `status [--missing]` | List papers with claim counts; `--missing` keeps only papers with none. |
 
 ## `/paper-rag:eval-retrieval`
