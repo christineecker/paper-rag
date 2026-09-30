@@ -18,6 +18,7 @@ Guards, checked before anything is written (see lib/claim_schema.py):
   - every multi-digit or decimal number in the claim text, effect_value and
     uncertainty_interval must appear in the source chunks; --skip-number-check skips this;
   - `direction`, if given, is one of increase, decrease, no_difference, mixed.
+Each stored claim gets `source_level` (abstract, fulltext or mixed) derived from its source chunks.
 Structured fields that are empty or "unknown" are not stored.
 `status` lists papers with their claim counts (--missing: only papers with none).
 """
@@ -140,6 +141,8 @@ def add(
         meta = dict(base_meta)
         meta["type"] = "claim"
         meta["source_chunk_ids"] = ids
+        kinds = {source[c]["type"] for c in ids}
+        meta["source_level"] = "mixed" if len(kinds) > 1 else ("abstract" if kinds == {"abstract"} else "fulltext")
         span = (claim.get("evidence_span") or "").strip()
         if span:
             meta["evidence_span"] = span
