@@ -20,6 +20,34 @@ import typer
 app = typer.Typer(add_completion=False)
 
 
+def load_included(path: Path) -> list[dict]:
+    """The `included: true` decisions in a triage.json."""
+    data = json.loads(path.read_text())
+    return [d for d in data.get("decisions", []) if d.get("included")]
+
+
+def ingest_records(
+    included: list[dict], tags: Optional[str] = None, force: bool = False, env: Optional[dict] = None
+) -> list[dict]:
+    """Run scripts/ingest.py once per record (env overrides the child's environment,
+    e.g. PAPER_RAG_HOME). Returns one result dict per record."""
+    ingest_script = Path(__file__).resolve().parent / "ingest.py"
+    results = []
+    for d in included:
+        cmd = [sys.executable, str(ingest_script), d["pmid"]]
+        if tags:
+            cmd += ["--tags", tags]
+        if force:
+            cmd.append("--force")
+        proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        try:
+            summary = json.loads(proc.stdout.strip())
+        except json.JSONDecodeError:
+            summary = {"error": "unparseable_output", "stdout": proc.stdout, "stderr": proc.stderr}
+        results.append({"pmid": d["pmid"], "title": d.get("title"), **summary})
+    return results
+
+
 @app.command()
 def main(
     triage_json: str = typer.Argument(..., help="Path to a triage.json written by triage.html"),
@@ -32,9 +60,7 @@ def main(
         print(json.dumps({"error": "file_not_found", "path": str(path)}))
         raise typer.Exit(code=1)
 
-    data = json.loads(path.read_text())
-    decisions = data.get("decisions", [])
-    included = [d for d in decisions if d.get("included")]
+    included = load_included(path)
 
     if not included:
         print(json.dumps({"error": "nothing_included", "triage_json": str(path)}))
@@ -52,20 +78,7 @@ def main(
         )
         return
 
-    ingest_script = Path(__file__).resolve().parent / "ingest.py"
-    results = []
-    for d in included:
-        cmd = [sys.executable, str(ingest_script), d["pmid"]]
-        if tags:
-            cmd += ["--tags", tags]
-        if force:
-            cmd.append("--force")
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-        try:
-            summary = json.loads(proc.stdout.strip())
-        except json.JSONDecodeError:
-            summary = {"error": "unparseable_output", "stdout": proc.stdout, "stderr": proc.stderr}
-        results.append({"pmid": d["pmid"], "title": d.get("title"), **summary})
+    results = ingest_records(included, tags=tags, force=force)
 
     n_ok = sum(1 for r in results if "error" not in r)
     print(

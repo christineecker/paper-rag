@@ -28,6 +28,9 @@ class FakeEmbeddingFunction:
             vectors.append([b / 255.0 for b in h[:16]])
         return vectors
 
+    def embed_query(self, input):  # noqa: A002 - chromadb >= 1.x query-side hook
+        return self(input)
+
     def name(self):
         return "fake-embedding-function"
 

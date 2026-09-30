@@ -51,17 +51,24 @@ def _slugify(text: str, max_len: int = 40) -> str:
 
 
 def _write_search_dir(
-    home: Path, payload: dict, label: Optional[str], notes: Optional[str], triage: bool
+    home: Path,
+    payload: dict,
+    label: Optional[str],
+    notes: Optional[str],
+    triage: bool,
+    searches_root: Optional[Path] = None,
+    log_path: Optional[Path] = None,
 ) -> tuple[Path, Optional[dict]]:
     """Write this search's query, PMIDs, and full result to their own directory
     under <home>/pubmed-searches/, and append a pointer to <home>/pubmed_search_log.jsonl
-    so the derivation of a final PMID set can be reconstructed later. Returns
+    so the derivation of a final PMID set can be reconstructed later (searches_root
+    and log_path override those two locations, e.g. for a project). Returns
     (search_dir, triage_summary), triage_summary being None if triage was
     skipped (--no-triage or too many PMIDs)."""
     retrieved_at = datetime.fromisoformat(payload["retrieved_at"])
     stamp = retrieved_at.strftime("%Y-%m-%d_%H%M%S")
     slug = _slugify(label or payload["pubmed_query"])
-    search_dir = home / "pubmed-searches" / f"{stamp}_{slug}"
+    search_dir = (searches_root or home / "pubmed-searches") / f"{stamp}_{slug}"
     search_dir.mkdir(parents=True, exist_ok=True)
 
     (search_dir / "query.json").write_text(json.dumps({
@@ -91,7 +98,7 @@ def _write_search_dir(
         else:
             triage_summary = triage_render.build_triage_for_search_dir(search_dir, payload, pmids, label)
 
-    log_path = home / "pubmed_search_log.jsonl"
+    log_path = log_path or home / "pubmed_search_log.jsonl"
     index_entry = {
         "retrieved_at": payload["retrieved_at"],
         "label": label,
@@ -140,6 +147,12 @@ def main(
         "PMIDs (run triage.py manually instead), or pass --no-triage to skip outright.",
     ),
     home: Optional[str] = typer.Option(None, "--home", help="paper-rag home dir override (see config.py)"),
+    searches_root: Optional[str] = typer.Option(
+        None, "--searches-root", help="Directory to create the search dir in (default: <home>/pubmed-searches)"
+    ),
+    log_path: Optional[str] = typer.Option(
+        None, "--log-path", help="Search log file to append to (default: <home>/pubmed_search_log.jsonl)"
+    ),
 ):
     try:
         parsed_concepts = _parse_concepts(concepts) if concepts else None
@@ -161,7 +174,13 @@ def main(
 
     if log:
         search_dir, triage_summary = _write_search_dir(
-            config_lib.resolve_home(home=home), payload, label, notes, triage
+            config_lib.resolve_home(home=home),
+            payload,
+            label,
+            notes,
+            triage,
+            searches_root=Path(searches_root).expanduser().resolve() if searches_root else None,
+            log_path=Path(log_path).expanduser().resolve() if log_path else None,
         )
         payload["search_dir"] = str(search_dir)
         if triage_summary is not None:

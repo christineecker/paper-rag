@@ -75,6 +75,17 @@ registered homes with `/paper-rag:use <name>`.
 - `/paper-rag:whoami <name>` — set `author_name` in `config.json` as the default
   `--author` for `/paper-rag:mine`.
 
+## Projects
+
+`/paper-rag:project <subcommand> <name> ...` groups PubMed searches and their triaged
+papers into a project (`create`, `list`, `info`, `search`, `ingest`, `add`, `remove`,
+`sync`, `ask`, `dashboard`). Papers are still ingested once into the main library; a
+project directory (anywhere you choose with `--path`, tracked in
+`~/.config/paper-rag/projects.json`) holds symlinks to its papers, a Chroma collection
+with vectors copied from main (no re-embedding), its own BM25 index, and its own
+dashboard. Because it has the shape of a home, `ask`, `cite`, `mine`, and `dashboard`
+work on it unchanged. Membership changes auto-sync; `sync` repairs.
+
 ## Embedding models
 
 Default: `BAAI/bge-small-en-v1.5` (local `sentence-transformers`, no API key). Any
