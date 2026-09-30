@@ -1,4 +1,46 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+/* claims view */
+.cl-wrap{display:flex;height:100%;min-height:0;}
+.cl-main{flex:1;min-width:0;overflow:auto;padding:20px 24px;}
+.cl-detail{width:340px;flex:none;overflow:auto;border-left:1px solid var(--border);background:var(--panel);padding:18px 16px 28px;}
+.cl-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0;}
+.cl-seg{display:flex;background:var(--panel-2);border-radius:6px;padding:2px;}
+.cl-seg button{font-family:inherit;background:none;border:none;padding:4px 10px;border-radius:4px;color:var(--text-faint);font-size:12px;font-weight:600;display:flex;gap:5px;align-items:center;cursor:pointer;}
+.cl-seg button.on{background:var(--accent-bg);color:var(--accent);}
+.cl-chk{display:flex;align-items:center;gap:6px;color:var(--text-dim);font-size:12px;}
+.cl-table{width:100%;border-collapse:collapse;min-width:680px;}
+.cl-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.cl-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.cl-table tbody tr{cursor:pointer;}
+.cl-table tbody tr:hover{background:var(--hover);}
+.cl-table tbody tr.sel{background:var(--sel-row);}
+.cl-scroll{border:1px solid var(--border);border-radius:8px;overflow-x:auto;background:var(--panel);}
+.cl-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:420px;}
+.cl-dir{width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:none;}
+.cl-dir.increase{background:var(--accent-bg);color:var(--accent);}
+.cl-dir.decrease{background:var(--oa-bg);color:var(--oa);}
+.cl-dir.no_difference{background:var(--panel-2);color:var(--text-dim);}
+.cl-dir.mixed{background:rgba(183,154,239,.15);color:#b79aef;}
+.cl-dir.sm{width:18px;height:18px;font-size:11px;}
+.cl-num{font-family:var(--mono);font-size:12px;white-space:nowrap;}
+.cl-pill{display:inline-block;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:1px 8px;font-size:11px;color:var(--text-dim);white-space:nowrap;}
+.cl-detail h2{font-size:14px;line-height:1.4;margin:0 0 12px;font-weight:600;}
+.cl-lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:600;margin:14px 0 6px;}
+.cl-pico{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cl-pico div{background:var(--code);border:1px solid var(--border);border-radius:6px;padding:6px 8px;min-width:0;overflow-wrap:anywhere;}
+.cl-pico small{display:block;color:var(--text-faint);font-size:10px;text-transform:uppercase;letter-spacing:.05em;}
+.cl-eff{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.cl-eff b{font-size:24px;font-family:var(--mono);color:var(--accent-strong);}
+.cl-quote{border-left:3px solid var(--accent-border);background:var(--code);border-radius:0 6px 6px 0;padding:8px 10px;color:var(--text-dim);font-size:12.5px;}
+.cl-src{font-family:var(--mono);font-size:11px;color:var(--text-faint);overflow-wrap:anywhere;}
+.cl-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;}
+.cl-card{border:1px solid var(--border);border-radius:8px;background:var(--code);padding:9px 11px;margin-top:8px;}
+.cl-card p{margin:0 0 6px;}
+.cl-card .cl-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.cl-empty{color:var(--text-faint);padding:28px;text-align:center;}
+.cl-empty code{font-family:var(--mono);color:var(--accent-strong);}
+@media (max-width:900px){.cl-wrap{flex-direction:column;}.cl-detail{width:auto;border-left:none;border-top:1px solid var(--border);}}
+</style></head><body>
 <title>Paper RAG Library</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
 <style>
@@ -366,6 +408,7 @@ tr.row:hover .star:not(.on){color:var(--text-faint);}
     <div class="rail">
       <div class="rail-btn active" data-view="lib" title="Library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
       <div class="rail-btn" data-view="figs" title="Figures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg></div>
+      <div class="rail-btn" data-view="claims" title="Claims"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h13"/><path d="M19 14l2 2-2 2"/></svg></div>
       <div class="rail-btn" data-view="ins" title="Insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div>
     </div>
 
@@ -443,6 +486,7 @@ tr.row:hover .star:not(.on){color:var(--text-faint);}
         <div class="detail" id="detail"></div>
       </div>
       <div class="view-pane" id="v-figs" hidden><div class="fig-grid" id="fig-grid"></div></div>
+      <div class="view-pane" id="v-claims" hidden></div>
       <div class="view-pane" id="v-ins" hidden></div>
     </div>
   </div>
@@ -494,7 +538,8 @@ const svg = {
 
 let state = { smart: 'all', avail: null, tags: new Set(), yr: null, tagFilter: '', tagsAll: false, view: 'lib',
               checked: new Set(), query: '', selected: null, citeStyle: 'BibTeX',
-              sortKey: 'year', sortDir: -1, absExpanded: false, authorsExpanded: false, detailTab: 'info', figureIndex: 0 };
+              sortKey: 'year', sortDir: -1, absExpanded: false, authorsExpanded: false, detailTab: 'info', figureIndex: 0,
+              cl: { dir: 'all', design: 'all', eff: false, sel: null } };
 
 // Reading status + stars live in this browser's localStorage (like notes).
 const STATUS_LABEL = { unread: 'Unread', reading: 'Reading', read: 'Read' };
@@ -520,6 +565,7 @@ const smartDefs = [
   { key: 'unread', label: 'Unread', icon: svg.dash, test: p => getStatus(p) === 'unread' },
   { key: 'starred', label: 'Starred', icon: svg.star, test: isStarred },
   { key: 'attn', label: 'Needs attention', icon: svg.warn, test: needsAttention },
+  { key: 'noclaims', label: 'No claims', icon: svg.dash, test: p => !p.n_claims && p.has_embedding },
 ];
 function paperYear(p){ return parseInt(p.year, 10) || null; }
 function keywordCounts(){
@@ -1013,6 +1059,12 @@ function renderDetail(){
           <div class="avail-row ${p.n_claims?'yes':'no'}">${p.n_claims?svg.check:svg.dash}<span class="lbl">${p.n_claims ? `${p.n_claims} claim${p.n_claims===1?'':'s'} extracted` : 'No claims extracted — run /paper-rag:extract-claims'}</span></div>
         </div>
       </div>
+
+      ${(p.claims || []).length ? `
+      <div class="d-section">
+        <div class="d-sec-label">Claims (${p.claims.length})</div>
+        ${p.claims.map(claimCardHtml).join('')}
+      </div>` : ''}
   `;
 
   const citeTab = `
@@ -1231,9 +1283,10 @@ function renderAll(){
   renderViews();
 }
 function renderViews(){
-  ['lib', 'figs', 'ins'].forEach(k => { document.getElementById('v-' + k).hidden = k !== state.view; });
+  ['lib', 'figs', 'claims', 'ins'].forEach(k => { document.getElementById('v-' + k).hidden = k !== state.view; });
   document.querySelectorAll('.rail-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === state.view));
   if(state.view === 'figs') renderFigures();
+  if(state.view === 'claims') renderClaims();
   if(state.view === 'ins') renderInsights();
 }
 
@@ -1253,6 +1306,97 @@ function renderFigures(){
         <small>${escapeHtml(authorLabel(namedAuthors(p)[0]) || p.authors || '')} · ${escapeHtml(p.year || '')} · ${escapeHtml(p.journal || '')}</small></div>
     </div>`).join('') + (items.length > CAP ? `<div class="detail-empty" style="grid-column:1/-1;">Showing ${CAP} of ${items.length} figures. Narrow the filters to see the rest.</div>` : '');
   grid.querySelectorAll('.fcard').forEach(c => c.addEventListener('click', () => openPaper(c.dataset.key, 'preview', Number(c.dataset.i))));
+}
+
+const CL_ARROW = { increase: '↑', decrease: '↓', no_difference: '=', mixed: '~' };
+const CL_LABEL = { all: 'All', increase: 'Increase', decrease: 'Decrease', no_difference: 'No difference', mixed: 'Mixed' };
+const clKey = c => c.p.doc_key + '|' + c.id;
+const clAll = list => list.flatMap(p => (p.claims || []).map(c => ({ ...c, p })));
+const clDirBadge = (d, sm) => d ? `<span class="cl-dir ${escapeHtml(d)}${sm ? ' sm' : ''}" title="${escapeHtml(CL_LABEL[d] || d)}">${CL_ARROW[d] || '?'}</span>` : '';
+const clEffect = c => c.effect_value ? `${escapeHtml(c.effect_value)} <span style="color:var(--text-faint);">${escapeHtml(c.effect_measure || '')}</span>` : '<span style="color:var(--text-faint);">not stated</span>';
+const clPaperLabel = p => `${escapeHtml(authorLabel(namedAuthors(p)[0]) || p.authors || '')} ${escapeHtml(p.year || '')}`;
+
+function claimCardHtml(c){
+  return `<div class="cl-card"><p>${escapeHtml(c.text)}</p>
+    <div class="cl-meta">${clDirBadge(c.direction, true)}
+      ${c.effect_value ? `<span class="cl-pill cl-num">${escapeHtml(c.effect_measure || '')} ${escapeHtml(c.effect_value)}</span>` : ''}
+      ${c.uncertainty_interval ? `<span class="cl-pill cl-num">${escapeHtml(c.uncertainty_interval)}</span>` : ''}
+      ${c.section ? `<span class="cl-pill">${escapeHtml(c.section)}${c.page != null ? ' p.' + escapeHtml(c.page) : ''}</span>` : ''}</div>
+    ${c.evidence_span ? `<div class="cl-quote" style="margin-top:8px;">${escapeHtml(c.evidence_span)}</div>` : ''}</div>`;
+}
+
+function renderClaims(){
+  const el = document.getElementById('v-claims');
+  const list = visiblePapers(), n = list.length;
+  const all = clAll(list);
+  const f = state.cl;
+  const withClaims = list.filter(p => p.n_claims).length;
+  const noClaims = list.filter(p => !p.n_claims && p.has_embedding).length;
+  if(!all.length){
+    el.innerHTML = `<div class="cl-empty">${PAPERS.some(p => p.n_claims) ? 'No claims in the current selection.' : `No claims extracted yet.<br>Run <code>/paper-rag:extract-claims --all-missing</code> in Claude Code, then refresh this dashboard.`}</div>`;
+    return;
+  }
+  const designs = [...new Set(all.map(c => c.study_design).filter(Boolean))].sort();
+  if(f.design !== 'all' && !designs.includes(f.design)) f.design = 'all';
+  const shown = all.filter(c => (f.dir === 'all' || c.direction === f.dir) && (f.design === 'all' || c.study_design === f.design) && (!f.eff || c.effect_value));
+  if(!shown.some(c => clKey(c) === f.sel)) f.sel = shown[0] ? clKey(shown[0]) : null;
+  const sel = shown.find(c => clKey(c) === f.sel);
+  const withEff = all.filter(c => c.effect_value).length, withQuote = all.filter(c => c.evidence_span).length;
+  const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+  const kpi = (v, l) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+
+  const rows = shown.map(c => `<tr data-k="${escapeHtml(clKey(c))}" class="${clKey(c) === f.sel ? 'sel' : ''}">
+    <td>${clDirBadge(c.direction) || '<span style="color:var(--text-faint);">·</span>'}</td>
+    <td><div class="cl-text">${escapeHtml(c.text)}</div></td>
+    <td>${escapeHtml(c.outcome || '')}</td>
+    <td class="cl-num">${clEffect(c)}${c.uncertainty_interval ? `<div style="color:var(--text-faint);font-size:11px;">${escapeHtml(c.uncertainty_interval)}</div>` : ''}</td>
+    <td>${c.study_design ? `<span class="cl-pill">${escapeHtml(c.study_design)}</span>` : ''}</td>
+    <td style="color:var(--text-faint);white-space:nowrap;">${clPaperLabel(c.p)}<div class="cl-num" style="font-size:11px;">PMID ${escapeHtml(c.p.pmid || '')}</div></td></tr>`).join('');
+
+  const pico = c => [['Population', c.population], ['Outcome', c.outcome], ['Intervention', c.intervention], ['Comparator', c.comparator]]
+    .map(([k, v]) => `<div><small>${k}</small>${escapeHtml(v || '—')}</div>`).join('');
+  const detail = sel ? `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">${clDirBadge(sel.direction)}<span style="color:var(--text-faint);">${escapeHtml(CL_LABEL[sel.direction] || 'Direction not stated')}${sel.study_design ? ' · ' + escapeHtml(sel.study_design) : ''}</span></div>
+    <h2>${escapeHtml(sel.text)}</h2>
+    <div class="cl-pico">${pico(sel)}</div>
+    <div class="cl-lab">Effect</div>
+    ${sel.effect_value ? `<div class="cl-eff"><b>${escapeHtml(sel.effect_value)}</b><span style="color:var(--text-faint);">${escapeHtml(sel.effect_measure || '')}</span><span style="color:var(--text-faint);">${escapeHtml(sel.uncertainty_interval || '')}</span></div>` : '<div style="color:var(--text-faint);">No effect size stated in the source.</div>'}
+    ${sel.evidence_span ? `<div class="cl-lab">Evidence quote</div><div class="cl-quote">${escapeHtml(sel.evidence_span)}</div>` : ''}
+    <div class="cl-lab">Source</div>
+    <div class="cl-src">${escapeHtml(sel.section || '')}${sel.page != null ? ' · p.' + escapeHtml(sel.page) : ''}${sel.source_chunk_ids && sel.source_chunk_ids.length ? ' · ' + escapeHtml(sel.source_chunk_ids.join(', ')) : ''}</div>
+    <div style="color:var(--text-faint);margin-top:4px;">${clPaperLabel(sel.p)} · ${escapeHtml(sel.p.journal || '')} · PMID ${escapeHtml(sel.p.pmid || '')}</div>
+    <div class="cl-actions">
+      <button class="tb-btn" id="cl-open">Open paper</button>
+      <button class="tb-btn" id="cl-copy">Copy with PMID</button>
+    </div>` : '<div class="cl-empty">No claim selected.</div>';
+
+  el.innerHTML = `<div class="cl-wrap"><div class="cl-main">
+    <div class="kpis">
+      ${kpi(all.length, 'claims in view')}
+      ${kpi(`${withClaims} <span style="font-size:14px;color:var(--text-faint);">of ${n}</span>`, 'papers with claims')}
+      ${kpi(pct(withEff, all.length) + '%', 'with an effect size')}
+      ${kpi(pct(withQuote, all.length) + '%', 'with a verified quote')}
+    </div>
+    <div class="cl-filters">
+      <div class="cl-seg" id="cl-dir">${Object.keys(CL_LABEL).map(k => `<button data-d="${k}" class="${f.dir === k ? 'on' : ''}">${k === 'all' ? '' : clDirBadge(k, true)}${CL_LABEL[k]}</button>`).join('')}</div>
+      <select class="cite-sel" id="cl-design" style="margin:0;"><option value="all">All study designs</option>${designs.map(d => `<option value="${escapeHtml(d)}"${f.design === d ? ' selected' : ''}>${escapeHtml(d)}</option>`).join('')}</select>
+      <label class="cl-chk"><input type="checkbox" id="cl-eff"${f.eff ? ' checked' : ''}> Effect size only</label>
+      ${noClaims ? `<button class="mark-pill on" id="cl-missing">${noClaims} paper${noClaims === 1 ? '' : 's'} without claims</button>` : ''}
+    </div>
+    <div class="cl-scroll"><table class="cl-table"><thead><tr><th></th><th>Claim</th><th>Outcome</th><th>Effect</th><th>Design</th><th>Paper</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" class="cl-empty">No claims match these filters.</td></tr>'}</tbody></table></div>
+    </div><aside class="cl-detail">${detail}</aside></div>`;
+
+  el.querySelectorAll('#cl-dir button').forEach(b => b.addEventListener('click', () => { f.dir = b.dataset.d; renderClaims(); }));
+  el.querySelector('#cl-design').addEventListener('change', e => { f.design = e.target.value; renderClaims(); });
+  el.querySelector('#cl-eff').addEventListener('change', e => { f.eff = e.target.checked; renderClaims(); });
+  el.querySelector('#cl-missing')?.addEventListener('click', () => { state.smart = 'noclaims'; state.view = 'lib'; renderAll(); });
+  el.querySelectorAll('.cl-table tbody tr[data-k]').forEach(tr => tr.addEventListener('click', () => { f.sel = tr.dataset.k; renderClaims(); }));
+  if(sel){
+    el.querySelector('#cl-open').addEventListener('click', () => openPaper(sel.p.doc_key, 'info'));
+    const cb = el.querySelector('#cl-copy');
+    cb.addEventListener('click', () => copyToClipboard(`${sel.text} (PMID ${sel.p.pmid || sel.p.doc_key})`, cb, 'Copied'));
+  }
 }
 
 function topCounts(values, n){
@@ -1283,6 +1427,10 @@ function renderInsights(){
   const noFT = list.filter(p => !p.has_fulltext).length;
   const oaNoPdf = list.filter(p => p.pmcid && !p.has_pdf).length;
   const noEmb = list.filter(p => !p.has_embedding).length;
+  const noClaims = list.filter(p => !p.n_claims && p.has_embedding).length;
+  const claimsAll = clAll(list);
+  const dirRows = topCounts(claimsAll.map(c => CL_LABEL[c.direction]), 4);
+  const covRows = [['With claims', list.filter(p => p.n_claims).length], ['No claims yet', noClaims], ['Not embedded', noEmb]].filter(r => r[1]);
   el.innerHTML = `<div class="ins">
     <div class="kpis">
       ${kpi(n, 'references in view')}
@@ -1300,10 +1448,17 @@ function renderInsights(){
         <div class="att"><div class="t">${oaNoPdf} open access without a stored PDF<small>Attach the PDF from the paper's PDF tab</small></div></div>
         <div class="att"><div class="t">${noEmb} not embedded<small>Excluded from semantic search</small></div>
           <button class="tb-btn" id="ins-attn">Show in library</button></div>
+        <div class="att"><div class="t">${noClaims} without claims<small>Run /paper-rag:extract-claims --all-missing</small></div>
+          <button class="tb-btn" id="ins-noclaims">Show in library</button></div>
       </div>
       <div class="icard"><h3>Top tags</h3>${hbars(topCounts(list.flatMap(p => p.keywords || []), 6), 'var(--accent)')}</div>
+    </div>
+    <div class="igrid">
+      <div class="icard"><h3>Claim coverage</h3>${hbars(covRows, 'var(--green, #8bc78e)')}</div>
+      <div class="icard"><h3>Direction of findings</h3>${hbars(dirRows, 'var(--accent)')}</div>
     </div></div>`;
   document.getElementById('ins-attn').addEventListener('click', () => { state.smart = 'attn'; state.view = 'lib'; renderAll(); });
+  document.getElementById('ins-noclaims').addEventListener('click', () => { state.smart = 'noclaims'; state.view = 'lib'; renderAll(); });
 }
 
 // ---- hover info box on the amber warning icon (open access, no PDF stored) ----

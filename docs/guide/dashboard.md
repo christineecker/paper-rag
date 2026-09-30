@@ -24,6 +24,23 @@ search, `Esc` close), cite in BibTeX / APA / Vancouver / RIS, and export of the
 selection or the whole filtered view as `.bib` / `.ris` / `.csv`. Reading status,
 stars, and notes are stored in the browser (localStorage), not in the library.
 
+**Claims.** Papers with extracted claims (see
+[Asking Questions](/guide/ask#claims)) show up in three places:
+
+- a **Claims** view (rail): every claim in the current filter with its direction,
+  outcome, effect size and confidence interval, study design and paper, filterable by
+  direction, study design and "effect size only". Selecting a claim shows its
+  population / intervention / comparator / outcome, the effect, the verbatim evidence
+  quote and its source section and page, with *Open paper* and *Copy with PMID*;
+- a **Claims** section in each paper's detail pane, and a "N claims extracted" row in
+  *Data in library*;
+- **Insights** cards for claim coverage and direction of findings, a "without claims"
+  attention row, and a **No claims** smart view in the sidebar.
+
+Claim rows are read from Chroma metadata when the dashboard is built, so re-run
+`/paper-rag:dashboard` after `/paper-rag:extract-claims`. The chunk counts shown per
+paper exclude claim rows.
+
 - `--home` / `--home-name` — same home resolution as every other command (see
   [Tags & Homes](/guide/tags-and-homes)).
 - `--out DIR` — write elsewhere instead of `<home>/dashboard`.

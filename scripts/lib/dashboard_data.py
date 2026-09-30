@@ -11,24 +11,31 @@ from typing import Optional
 _FIG_CAPTION_RE = re.compile(r"!\[Figure (\d+)\]\([^)]*\)\n\n(.*?)\n\n", re.DOTALL)
 
 
+def _open_collection(home: Path):
+    """The active Chroma collection without loading an embedding model, or None."""
+    chroma_path = home / "chroma"
+    if not chroma_path.exists():
+        return None
+    import chromadb
+
+    from . import config as cfg
+
+    model = cfg.resolve_embedding_model(home)
+    collection_name = cfg.collection_name(model)
+    client = chromadb.PersistentClient(path=str(chroma_path))
+    if collection_name not in [c.name for c in client.list_collections()]:
+        return None
+    return client.get_collection(collection_name)
+
+
 def embedded_counts(home: Path) -> tuple[dict[str, int], dict[str, int]]:
     """(doc_key -> chunk count, doc_key -> claim count) in the active Chroma collection.
     Reads metadata only (no embedding model load), so an empty/missing store yields
     ({}, {}). Claim rows are counted apart from chunks."""
-    chroma_path = home / "chroma"
-    if not chroma_path.exists():
-        return {}, {}
     try:
-        import chromadb
-
-        from . import config as cfg
-
-        model = cfg.resolve_embedding_model(home)
-        collection_name = cfg.collection_name(model)
-        client = chromadb.PersistentClient(path=str(chroma_path))
-        if collection_name not in [c.name for c in client.list_collections()]:
+        collection = _open_collection(home)
+        if collection is None:
             return {}, {}
-        collection = client.get_collection(collection_name)
         result = collection.get(include=["metadatas"])
         chunks: Counter = Counter()
         claims: Counter = Counter()
@@ -40,6 +47,66 @@ def embedded_counts(home: Path) -> tuple[dict[str, int], dict[str, int]]:
         return chunks, claims
     except Exception:
         return {}, {}
+
+
+_CLAIM_FIELDS = (
+    "population",
+    "intervention",
+    "comparator",
+    "outcome",
+    "direction",
+    "effect_value",
+    "effect_measure",
+    "uncertainty_interval",
+    "study_design",
+    "evidence_span",
+)
+
+
+def _claim_index(claim_id: str) -> int:
+    tail = claim_id.rsplit("::", 1)[-1]
+    return int(tail) if tail.isdigit() else 0
+
+
+def load_claims(home: Path) -> dict[str, list[dict]]:
+    """doc_key -> that paper's claims, in extraction order. Each claim carries its text,
+    structured fields, evidence quote, section, the page of its first source chunk and
+    its source chunk ids. Metadata only, no embedding model load; {} if none/no store."""
+    try:
+        collection = _open_collection(home)
+        if collection is None:
+            return {}
+        rows = collection.get(where={"type": "claim"}, include=["documents", "metadatas"])
+        if not rows["ids"]:
+            return {}
+        source_ids = sorted(
+            {c for m in rows["metadatas"] for c in (m.get("source_chunk_ids") or "").split(", ") if c}
+        )
+        pages: dict[str, object] = {}
+        if source_ids:
+            src = collection.get(ids=source_ids, include=["metadatas"])
+            pages = {i: m.get("page") for i, m in zip(src["ids"], src["metadatas"])}
+        by_doc: dict[str, list[dict]] = {}
+        for cid, text, meta in zip(rows["ids"], rows["documents"], rows["metadatas"]):
+            key = meta.get("doc_key")
+            if not key:
+                continue
+            ids = [c for c in (meta.get("source_chunk_ids") or "").split(", ") if c]
+            claim = {"id": cid, "text": text, "source_chunk_ids": ids}
+            if meta.get("section"):
+                claim["section"] = meta["section"]
+            page = pages.get(ids[0]) if ids else None
+            if page is not None:
+                claim["page"] = page
+            for field in _CLAIM_FIELDS:
+                if meta.get(field):
+                    claim[field] = meta[field]
+            by_doc.setdefault(key, []).append(claim)
+        for claims in by_doc.values():
+            claims.sort(key=lambda c: _claim_index(c["id"]))
+        return by_doc
+    except Exception:
+        return {}
 
 
 def embedded_chunk_counts(home: Path) -> dict[str, int]:
@@ -107,6 +174,7 @@ def scan_paper(
     home: Path,
     chunk_counts: Optional[dict[str, int]] = None,
     claim_counts: Optional[dict[str, int]] = None,
+    claims: Optional[list[dict]] = None,
 ) -> Optional[dict]:
     """Build one dashboard row from <home>/papers/<doc_key>/, or None if there's
     no metadata.json there (not a paper dir, or a partial/failed ingest)."""
@@ -127,7 +195,8 @@ def scan_paper(
     captions_by_index = _figure_captions(doc_dir)
     figure_captions = [captions_by_index.get(i) for i in range(len(figure_srcs))]
     n_chunks = (chunk_counts or {}).get(doc_key, 0)
-    n_claims = (claim_counts or {}).get(doc_key, 0)
+    claims = claims or []
+    n_claims = len(claims) or (claim_counts or {}).get(doc_key, 0)
     pdf_path = doc_dir / "source.pdf"
     has_pdf = pdf_path.exists()
     pdf_info = _pdf_info(pdf_path) if has_pdf else {"size_mb": None, "n_pages": None}
@@ -164,6 +233,7 @@ def scan_paper(
         "n_chunks": n_chunks,
         "has_embedding": n_chunks > 0,
         "n_claims": n_claims,
+        "claims": claims,
     }
 
 
@@ -172,11 +242,12 @@ def scan_papers(home: Path) -> list[dict]:
     if not papers_root.exists():
         return []
     chunk_counts, claim_counts = embedded_counts(home)
+    claims_by_doc = load_claims(home)
     papers = []
     for doc_dir in sorted(papers_root.iterdir()):
         if not doc_dir.is_dir():
             continue
-        paper = scan_paper(doc_dir, home, chunk_counts, claim_counts)
+        paper = scan_paper(doc_dir, home, chunk_counts, claim_counts, claims_by_doc.get(doc_dir.name))
         if paper is not None:
             papers.append(paper)
     return papers

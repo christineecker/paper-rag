@@ -128,3 +128,45 @@ def test_scan_paper_reports_claim_count_apart_from_chunks(tmp_home):
     paper = dashboard_data.scan_paper(doc_dir, tmp_home, {"111": 4}, {"111": 3})
     assert paper["n_chunks"] == 4 and paper["n_claims"] == 3
     assert dashboard_data.scan_paper(doc_dir, tmp_home)["n_claims"] == 0
+
+
+def test_load_claims_reads_claim_rows_with_pages_and_fields(tmp_home, fake_embeddings):
+    from lib import store as store_lib
+
+    model = cfg.resolve_embedding_model(tmp_home, None)
+    collection = store_lib.get_collection(cfg.chroma_dir(tmp_home), model, cfg.collection_name(model))
+    base = {"doc_key": "111", "pmid": "111"}
+    store_lib.upsert_chunks(
+        collection,
+        [
+            {"id": "111::text::4", "text": "Drug lowered HbA1c by 1.1.", "metadata": {**base, "type": "text", "section": "Results", "page": 6}},
+            {"id": "111::claim::1", "text": "Second.", "metadata": {**base, "type": "claim", "source_chunk_ids": ["111::text::4"]}},
+            {
+                "id": "111::claim::0",
+                "text": "Drug lowered HbA1c.",
+                "metadata": {
+                    **base,
+                    "type": "claim",
+                    "source_chunk_ids": ["111::text::4"],
+                    "section": "Results",
+                    "direction": "decrease",
+                    "effect_value": "1.1",
+                    "evidence_span": "Drug lowered HbA1c by 1.1",
+                },
+            },
+        ],
+    )
+    got = dashboard_data.load_claims(tmp_home)
+    assert [c["id"] for c in got["111"]] == ["111::claim::0", "111::claim::1"]
+    first = got["111"][0]
+    assert first["page"] == 6 and first["section"] == "Results" and first["direction"] == "decrease"
+    assert first["source_chunk_ids"] == ["111::text::4"] and first["evidence_span"] == "Drug lowered HbA1c by 1.1"
+    assert "population" not in first
+
+
+def test_scan_paper_includes_claims_list(tmp_home):
+    doc_dir = _write_paper(tmp_home, "111", metadata=FULLTEXT_METADATA)
+    claims = [{"id": "111::claim::0", "text": "x", "source_chunk_ids": []}]
+    paper = dashboard_data.scan_paper(doc_dir, tmp_home, {"111": 4}, {}, claims)
+    assert paper["claims"] == claims and paper["n_claims"] == 1
+    assert dashboard_data.scan_paper(doc_dir, tmp_home)["claims"] == []
