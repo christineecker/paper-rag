@@ -178,7 +178,9 @@ def _funnel_steps(clauses: list[QueryClause], final_total: int) -> list[dict]:
     running: list[str] = []
     for i, clause in enumerate(clauses):
         running.append(clause.text)
-        cumulative_query = " AND ".join(running)
+        # Same English filter as the final query, so cumulative counts and the
+        # final total (reused for the last step) are comparable.
+        cumulative_query = "(" + " AND ".join(running) + ") AND english[Language]"
         if i == len(clauses) - 1:
             total = final_total
         else:
@@ -237,6 +239,10 @@ def search_pubmed(
             "pubmed-cyanheads MCP tool for MeSH/terminology help), then call "
             "search_pubmed(mode='concepts', concepts=...)."
         )
+
+    # Only English-language literature enters the library. Parenthesize so the
+    # filter binds over the whole query, including a direct-mode top-level OR.
+    compiled_query = f"({compiled_query}) AND english[Language]"
 
     esearch_result = fetch_lib.esearch_pmids(compiled_query, max_results=max_results, page_size=page_size)
 

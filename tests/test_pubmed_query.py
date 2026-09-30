@@ -35,7 +35,7 @@ def fake_esearch(monkeypatch):
 
 def test_direct_mode_passthrough(fake_esearch):
     result = pq.search_pubmed(mode="direct", query="  autism[Title/Abstract]\r\nAND mri[Title/Abstract]  ")
-    assert result.pubmed_query == "autism[Title/Abstract] AND mri[Title/Abstract]"
+    assert result.pubmed_query == "(autism[Title/Abstract] AND mri[Title/Abstract]) AND english[Language]"
     assert result.mode == "direct"
     assert result.pmids == ["111", "222"]
     assert result.total_count == 2
@@ -65,7 +65,8 @@ def test_concept_mode_combines_or_and_and(fake_esearch):
     result = pq.search_pubmed(mode="concepts", concepts=concepts)
     query = result.pubmed_query
     assert " AND " in query
-    assert query.count("(") == 2
+    assert query.endswith(" AND english[Language]")
+    assert query.count("(") == 3  # two concept groups + outer wrap for the language filter
     assert "autism[Title/Abstract]" in query
     assert '"autism spectrum disorder"[Title/Abstract]' in query
     assert '"structural mri"[Title/Abstract]'.lower() in query.lower() or "mri[Title/Abstract]" in query

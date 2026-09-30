@@ -648,26 +648,21 @@ renderFinal();
 
 def build_triage_for_search_dir(sdir: Path, payload: dict, pmids: list[str], label: str | None) -> dict:
     """Fetch real citation metadata for every PMID and write sdir/triage.html.
-    Returns a JSON-able summary (n_papers, n_metadata_errors, errors, triage_html)."""
+    Records whose metadata fetch fails or whose title is missing are excluded.
+    Returns a JSON-able summary (n_papers, n_metadata_errors, n_missing_title,
+    missing_title_pmids, errors, triage_html)."""
     papers = []
     errors = []
+    missing_title = []
     for pmid in pmids:
         try:
             meta = fetch_lib.fetch_citation_metadata(pmid)
         except Exception as exc:
             errors.append({"pmid": pmid, "error": str(exc)})
-            papers.append(
-                {
-                    "pmid": pmid,
-                    "title": None,
-                    "authors": [],
-                    "journal": None,
-                    "year": None,
-                    "doi": None,
-                    "pmcid": None,
-                    "abstract": None,
-                }
-            )
+            continue
+        # Records without a title are excluded from triage entirely.
+        if not (meta.get("title") or "").strip():
+            missing_title.append(pmid)
             continue
         papers.append(meta)
 
@@ -679,5 +674,7 @@ def build_triage_for_search_dir(sdir: Path, payload: dict, pmids: list[str], lab
         "triage_html": str(out_path),
         "n_papers": len(papers),
         "n_metadata_errors": len(errors),
+        "n_missing_title": len(missing_title),
+        "missing_title_pmids": missing_title,
         "errors": errors,
     }
