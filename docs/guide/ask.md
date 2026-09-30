@@ -120,7 +120,9 @@ deleted by hand.
 ## Filtering results
 
 - `--k N` (default `5`) — number of chunks returned, after fusion.
-- `--type text|figure|abstract` — restrict to one chunk type.
+- `--claims-k N` (default `3`) — claim hits in the default `merged` strategy.
+- `--strategy merged|chunks|claims|mixed` — see [Claims](#claims). Ignored with `--type`.
+- `--type text|figure|abstract|claim` — restrict to one row type (single search).
 - `--pmid PMID` — restrict to one paper.
 - `--where '<json>'` — a raw Chroma-style filter, for anything `--type`/`--pmid` don't
   cover. Supports `$and`, `$or`, `$eq`, `$ne`, `$in`, `$nin`, and bare equality, applied
@@ -144,6 +146,33 @@ Example — scope to a project tag with `--where` (see
 ```
 /paper-rag:ask summarize the methods --where '{"tags": "meta-analysis"}'
 ```
+
+## Claims
+
+Papers can carry extracted **claims**: short, standalone assertions written by Claude
+at ingest and stored as `claim` rows beside the chunks (see `/paper-rag:extract-claims`).
+Each claim records the ids of the chunks that support it (`source_chunk_ids`).
+
+By default `ask` uses the `merged` strategy:
+
+1. one hybrid search over claims (`--claims-k`), one over chunks (`--k`);
+2. each claim hit gets its supporting chunks attached as `source_chunks`
+   (`--no-expand-claims` turns this off);
+3. chunks already covered by a claim's sources are dropped from the chunk list.
+
+Claude then writes the answer from the chunk text in `source_chunks`; the claim is a
+pointer to the right paper and passage, not the quoted wording. Papers without claims
+are found through their chunks alone, so `merged` equals plain chunk search on a library
+with no claims. `--strategy chunks|claims|mixed` run the alternatives, and
+`/paper-rag:eval-retrieval` compares them on your own labelled questions.
+
+Claims are checked when stored: every source chunk must belong to the paper, each claim
+must carry an `evidence_span` quoted verbatim from a source chunk, and every number in the
+claim (and in `effect_value` / `uncertainty_interval`) must appear in those sources.
+Optional structured fields (`population`, `intervention`, `comparator`, `outcome`,
+`direction`, `effect_value`, `effect_measure`, `uncertainty_interval`, `study_design`)
+are stored as metadata and returned on claim hits; they are for display and comparison,
+not for filtering.
 
 ## Embedding model
 

@@ -45,7 +45,9 @@ via `typer`). For the reasoning behind each command's behavior, see the
 
 | Command | Script | Purpose |
 |---|---|---|
-| [`/paper-rag:ask`](#paper-rag-ask) | `query.py` | Retrieve chunks for a question via hybrid dense + BM25 search. |
+| [`/paper-rag:ask`](#paper-rag-ask) | `query.py` | Retrieve claims and chunks for a question via hybrid dense + BM25 search. |
+| [`/paper-rag:extract-claims`](#paper-rag-extract-claims) | `claims.py` | Store Claude-extracted, verified claims per paper (or batch all papers missing them). |
+| [`/paper-rag:eval-retrieval`](#paper-rag-eval-retrieval) | `eval_retrieval.py` | Compare chunk, claim and merged search on labelled questions. |
 
 ### Cite & mine
 
@@ -201,13 +203,16 @@ a normal connection, instant on every run after (cached).
 
 Retrieve chunks for a question via hybrid dense + BM25 search. Runs `scripts/query.py`; Claude writes the prose answer from the returned JSON.
 
-**Syntax:** `/paper-rag:ask <question> [--k 5] [--type text|figure|abstract] [--pmid PMID] [--where '<json>'] [--embedding-model M] [--dense-only] [--lexical-only] [--rrf-k 60]`
+**Syntax:** `/paper-rag:ask <question> [--k 5] [--claims-k 3] [--strategy merged|chunks|claims|mixed] [--no-expand-claims] [--type text|figure|abstract|claim] [--pmid PMID] [--where '<json>'] [--embedding-model M] [--dense-only] [--lexical-only] [--rrf-k 60]`
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
 | `question` (positional) | string | required | The question text. |
-| `--k` | int | `5` | Number of ranked chunks to return. |
-| `--type` | string (`text`\|`figure`\|`abstract`) | none | Restrict to one chunk type. |
+| `--k` | int | `5` | Number of ranked chunks to return (total hits for a single filtered search). |
+| `--claims-k` | int | `3` | Claim hits in the `merged` strategy. |
+| `--strategy` | string (`merged`\|`chunks`\|`claims`\|`mixed`) | `merged` | `merged`: separate claim and chunk searches, claims first. `mixed`: one search over every row type. Ignored when `--type` is given. |
+| `--expand-claims` / `--no-expand-claims` | flag | on | Attach each claim hit's supporting chunks as `source_chunks` and drop chunks they already cover. |
+| `--type` | string (`text`\|`figure`\|`abstract`\|`claim`) | none | Restrict to one row type (single search, no strategy). |
 | `--pmid` | string | none | Restrict to one paper. |
 | `--where` | JSON string | none | Raw Chroma-style filter; overrides `--type`/`--pmid` if given. |
 | `--embedding-model` | string | home's `config.json` default | Query a specific model's collection. |
@@ -220,6 +225,28 @@ Retrieve chunks for a question via hybrid dense + BM25 search. Runs `scripts/que
 ```
 /paper-rag:ask what sample sizes were used --k 8 --where '{"tags": "meta-analysis"}'
 ```
+
+## `/paper-rag:extract-claims`
+
+Store atomic claims for ingested papers. Claude reads the chunks, writes claims, re-reads each claim's source chunks to verify it, then `scripts/claims.py add` stores them as `claim` rows. Runs `scripts/claims.py`.
+
+**Syntax:** `/paper-rag:extract-claims <doc_key|pmid>` or `/paper-rag:extract-claims --all-missing`
+
+`claims.py` subcommands:
+
+| Subcommand | Description |
+|---|---|
+| `chunks <doc_key\|pmid>` | List a paper's text and abstract chunks with ids. |
+| `add <doc_key\|pmid> [--file F] [--skip-span-check] [--skip-number-check]` | Replace the paper's claims from a JSON list. Rejects unknown `source_chunk_ids`, a missing or non-verbatim `evidence_span`, an invalid `direction`, and numbers not present in the source chunks. Optional structured fields are stored as metadata. |
+| `status [--missing]` | List papers with claim counts; `--missing` keeps only papers with none. |
+
+## `/paper-rag:eval-retrieval`
+
+Score `chunks`, `claims` and `merged` search on labelled questions. Runs `scripts/eval_retrieval.py`.
+
+**Syntax:** `/paper-rag:eval-retrieval <questions.json> [--k 5] [--claims-k 3] [--strategies chunks,claims,merged]`
+
+Input is a JSON list of `{"question", "relevant_pmids"}` (see `evals/questions.example.json`). Output is per-strategy means of `hit`, `recall` and `mrr`, plus per-question detail.
 
 ## `/paper-rag:cite`
 

@@ -11,12 +11,13 @@ from typing import Optional
 _FIG_CAPTION_RE = re.compile(r"!\[Figure (\d+)\]\([^)]*\)\n\n(.*?)\n\n", re.DOTALL)
 
 
-def embedded_chunk_counts(home: Path) -> dict[str, int]:
-    """doc_key -> chunk count in the active Chroma collection. Reads metadata only
-    (no embedding model load), so an empty/missing store just yields {}."""
+def embedded_counts(home: Path) -> tuple[dict[str, int], dict[str, int]]:
+    """(doc_key -> chunk count, doc_key -> claim count) in the active Chroma collection.
+    Reads metadata only (no embedding model load), so an empty/missing store yields
+    ({}, {}). Claim rows are counted apart from chunks."""
     chroma_path = home / "chroma"
     if not chroma_path.exists():
-        return {}
+        return {}, {}
     try:
         import chromadb
 
@@ -26,12 +27,23 @@ def embedded_chunk_counts(home: Path) -> dict[str, int]:
         collection_name = cfg.collection_name(model)
         client = chromadb.PersistentClient(path=str(chroma_path))
         if collection_name not in [c.name for c in client.list_collections()]:
-            return {}
+            return {}, {}
         collection = client.get_collection(collection_name)
         result = collection.get(include=["metadatas"])
-        return Counter(m["doc_key"] for m in result["metadatas"] if m.get("doc_key"))
+        chunks: Counter = Counter()
+        claims: Counter = Counter()
+        for m in result["metadatas"]:
+            key = m.get("doc_key")
+            if not key:
+                continue
+            (claims if m.get("type") == "claim" else chunks)[key] += 1
+        return chunks, claims
     except Exception:
-        return {}
+        return {}, {}
+
+
+def embedded_chunk_counts(home: Path) -> dict[str, int]:
+    return embedded_counts(home)[0]
 
 
 def _authors_summary(authors: list[dict]) -> str:
@@ -90,7 +102,12 @@ def _count_figures(figures_dir: Path) -> int:
     return len(_list_figures(figures_dir))
 
 
-def scan_paper(doc_dir: Path, home: Path, chunk_counts: Optional[dict[str, int]] = None) -> Optional[dict]:
+def scan_paper(
+    doc_dir: Path,
+    home: Path,
+    chunk_counts: Optional[dict[str, int]] = None,
+    claim_counts: Optional[dict[str, int]] = None,
+) -> Optional[dict]:
     """Build one dashboard row from <home>/papers/<doc_key>/, or None if there's
     no metadata.json there (not a paper dir, or a partial/failed ingest)."""
     metadata_path = doc_dir / "metadata.json"
@@ -110,6 +127,7 @@ def scan_paper(doc_dir: Path, home: Path, chunk_counts: Optional[dict[str, int]]
     captions_by_index = _figure_captions(doc_dir)
     figure_captions = [captions_by_index.get(i) for i in range(len(figure_srcs))]
     n_chunks = (chunk_counts or {}).get(doc_key, 0)
+    n_claims = (claim_counts or {}).get(doc_key, 0)
     pdf_path = doc_dir / "source.pdf"
     has_pdf = pdf_path.exists()
     pdf_info = _pdf_info(pdf_path) if has_pdf else {"size_mb": None, "n_pages": None}
@@ -145,6 +163,7 @@ def scan_paper(doc_dir: Path, home: Path, chunk_counts: Optional[dict[str, int]]
         "_figure_srcs": [str(s) for s in figure_srcs],
         "n_chunks": n_chunks,
         "has_embedding": n_chunks > 0,
+        "n_claims": n_claims,
     }
 
 
@@ -152,12 +171,12 @@ def scan_papers(home: Path) -> list[dict]:
     papers_root = home / "papers"
     if not papers_root.exists():
         return []
-    chunk_counts = embedded_chunk_counts(home)
+    chunk_counts, claim_counts = embedded_counts(home)
     papers = []
     for doc_dir in sorted(papers_root.iterdir()):
         if not doc_dir.is_dir():
             continue
-        paper = scan_paper(doc_dir, home, chunk_counts)
+        paper = scan_paper(doc_dir, home, chunk_counts, claim_counts)
         if paper is not None:
             papers.append(paper)
     return papers

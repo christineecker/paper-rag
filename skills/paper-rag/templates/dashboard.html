@@ -1010,6 +1010,7 @@ function renderDetail(){
           <div class="avail-row ${p.has_pdf?'yes':'no'}">${p.has_pdf?svg.check:svg.dash}<span class="lbl">${p.has_pdf ? 'Source PDF stored' : 'No PDF stored'}</span></div>
           <div class="avail-row ${p.n_figures>0?'oa':'no'}">${p.n_figures>0?svg.check:svg.dash}<span class="lbl">${p.n_figures>0 ? `${p.n_figures} figure${p.n_figures===1?'':'s'} extracted` : 'No figures extracted'}</span></div>
           <div class="avail-row ${p.has_embedding?'yes':'no'}">${p.has_embedding?svg.check:svg.dash}<span class="lbl">${p.has_embedding ? `Vector embedded (${p.n_chunks} chunk${p.n_chunks===1?'':'s'} indexed)` : 'Not embedded — excluded from semantic search'}</span></div>
+          <div class="avail-row ${p.n_claims?'yes':'no'}">${p.n_claims?svg.check:svg.dash}<span class="lbl">${p.n_claims ? `${p.n_claims} claim${p.n_claims===1?'':'s'} extracted` : 'No claims extracted — run /paper-rag:extract-claims'}</span></div>
         </div>
       </div>
   `;

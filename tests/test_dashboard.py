@@ -121,3 +121,10 @@ def test_build_dashboard_writes_index_and_copies_covers(tmp_home, tmp_path):
 
     assert (out_dir / "figs" / "111.png").exists()
     assert not (out_dir / "figs" / "222.png").exists()
+
+
+def test_scan_paper_reports_claim_count_apart_from_chunks(tmp_home):
+    doc_dir = _write_paper(tmp_home, "111", metadata=FULLTEXT_METADATA)
+    paper = dashboard_data.scan_paper(doc_dir, tmp_home, {"111": 4}, {"111": 3})
+    assert paper["n_chunks"] == 4 and paper["n_claims"] == 3
+    assert dashboard_data.scan_paper(doc_dir, tmp_home)["n_claims"] == 0

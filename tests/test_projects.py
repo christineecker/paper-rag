@@ -359,7 +359,7 @@ def test_query_against_project_returns_only_member_chunks(
 
     query.main(
         "metformin", k=20, type_filter=None, pmid_filter=None, where_raw=None, embedding_model=None,
-        dense_only=False, lexical_only=False, rrf_k=60,
+        dense_only=False, lexical_only=False, rrf_k=60, claims_k=3, strategy="merged", expand_claims=True,
     )
     results = json.loads(capsys.readouterr().out)
 

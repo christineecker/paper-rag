@@ -42,5 +42,9 @@ to re-ingest. If it reports no open-access full text was found, tell the user it
 to metadata-only ingest (abstract + citation metadata indexed, no full-text chunks) unless
 `--require-fulltext` was passed, in which case it aborted and a local file must be supplied.
 
+After a successful ingest with `has_fulltext` or an abstract, run
+`/paper-rag:extract-claims <doc_key>` for the paper (re-run it after `--force`, which
+deletes existing claims). Skip if the user asked for a bare ingest.
+
 After a successful ingest, mention that `/paper-rag:dashboard` can be run to refresh the
 library dashboard with the new paper.
