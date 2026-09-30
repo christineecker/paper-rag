@@ -14,6 +14,7 @@ import secrets
 import shutil
 import sys
 import webbrowser
+from datetime import datetime
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import Optional
@@ -71,6 +72,7 @@ def build_dashboard(
     html = html.replace("__STORAGE_JSON__", json.dumps(storage, indent=2))
     html = html.replace("__ATTACH_PORT__", json.dumps(attach_port))
     html = html.replace("__ATTACH_TOKEN__", json.dumps(attach_token))
+    html = html.replace("__GENERATED_AT__", json.dumps(datetime.now().strftime("%d %b %Y %H:%M")))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     index_path = out_dir / "index.html"

@@ -15,6 +15,15 @@ searchable reference table / detail rail with abstract, identifiers, and BibTeX
 export) plus `dashboard/figs/<doc_key>.png` cover images copied from each paper's
 first extracted figure.
 
+The page also has: smart views (Unread / Starred / Needs attention), combinable
+availability + multi-select tag + year-histogram filters shown as removable chips,
+a first-author-highlighted `Family G` author column, per-paper reading status and
+stars, a hover info box on the amber ⚠ (open access, no PDF stored), Figures and
+Insights views, prev/next through the list (`j`/`k`, `x` select, `s` star, `/`
+search, `Esc` close), cite in BibTeX / APA / Vancouver / RIS, and export of the
+selection or the whole filtered view as `.bib` / `.ris` / `.csv`. Reading status,
+stars, and notes are stored in the browser (localStorage), not in the library.
+
 - `--home` / `--home-name` — same home resolution as every other command (see
   [Tags & Homes](/guide/tags-and-homes)).
 - `--out DIR` — write elsewhere instead of `<home>/dashboard`.

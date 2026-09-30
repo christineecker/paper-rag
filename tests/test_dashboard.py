@@ -115,6 +115,7 @@ def test_build_dashboard_writes_index_and_copies_covers(tmp_home, tmp_path):
     index_html = (out_dir / "index.html").read_text()
     assert "__PAPERS_JSON__" not in index_html
     assert "__STORAGE_JSON__" not in index_html
+    assert "__GENERATED_AT__" not in index_html
     assert '"doc_key": "111"' in index_html
     assert "_cover_src" not in index_html
 
