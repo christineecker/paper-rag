@@ -86,6 +86,7 @@ body{background:var(--bg);color:var(--text);font-family:"Inter",-apple-system,sa
 .rail{width:56px;flex:none;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:8px;}
 .rail-btn{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-faint);cursor:pointer;border:1px solid transparent;}
 .rail-btn svg{width:19px;height:19px;}
+.rail-btn[hidden]{display:none;}
 .rail-btn.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border);}
 .rail-btn:not(.active):hover{color:var(--text-dim);background:var(--hover);}
 
@@ -351,6 +352,31 @@ tr.row:hover .star:not(.on){color:var(--text-faint);}
 .cite-actions{display:flex;gap:8px;}
 .cite-actions .export-btn{flex:1;}
 .view-pane{flex:1;min-height:0;overflow:auto;}
+/* concept graph */
+.gv{display:flex;height:100%;min-height:0;--g-pop:var(--oa);--g-out:#8fd6a8;--g-conf:#ef6f6c;}
+.gv-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.gv-bar{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text-faint);font-size:12px;}
+.gv-bar label{display:flex;gap:5px;align-items:center;cursor:pointer;}
+.gv-bar .gv-note{margin-left:auto;}
+.gv-svg{flex:1;min-height:0;width:100%;display:block;touch-action:none;}
+.gv-col{font-size:11px;fill:var(--text-faint);letter-spacing:.06em;text-transform:uppercase;}
+.gv-node{cursor:grab;touch-action:none;}.gv-node circle{fill:var(--panel);stroke-width:2;}
+.gv-node.pop circle{stroke:var(--g-pop);}.gv-node.out circle{stroke:var(--g-out);}
+.gv-node text{fill:var(--text);pointer-events:none;}.gv-node .n{fill:var(--text-faint);}
+.gv-node.drag{cursor:grabbing;}.gv-node.pinned circle{stroke-dasharray:3 2;}.gv-node.sel circle{stroke-width:4;}
+.gv-dim{opacity:.2;}
+.gv-edge{fill:none;stroke-width:2;cursor:pointer;}.gv-edge.conflict{stroke:var(--g-conf);stroke-width:3.5;}
+.gv-edge.is_a{stroke:var(--text-faint);stroke-dasharray:6 4;}.gv-edge.supports,.gv-edge.extends,.gv-edge.replicates{stroke:var(--g-out);}
+.gv-edge.co{stroke:var(--border-hover);stroke-width:1.5;cursor:default;}
+.gv-lbl{font-size:11px;font-weight:600;fill:var(--g-conf);pointer-events:none;}
+.gv-legend{display:flex;gap:14px;flex-wrap:wrap;padding:6px 14px 10px;font-size:11.5px;color:var(--text-faint);}
+.gv-legend i{display:inline-block;width:20px;border-top:3px solid;vertical-align:middle;margin-right:5px;}
+.gv-side{width:340px;flex:none;border-left:1px solid var(--border);background:var(--panel);padding:16px;overflow:auto;}
+.gv-side h2{font-size:14px;margin:0 0 6px;font-weight:600;}
+.gv-tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid var(--border);color:var(--text-dim);margin:0 4px 4px 0;}
+.gv-tag.w{border-color:var(--g-conf);color:var(--g-conf);}
+.gv-cmd{background:var(--code);border:1px solid var(--border);border-radius:6px;padding:8px;font-family:var(--mono);font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text-dim);}
+@media(max-width:900px){.gv{flex-direction:column}.gv-side{width:auto;border-left:0;border-top:1px solid var(--border);max-height:45%}}
 .fig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:16px 14px;}
 .fcard{background:var(--panel-2);border:1px solid var(--border);border-radius:9px;overflow:hidden;cursor:pointer;}
 .fcard:hover{border-color:var(--accent-border);}
@@ -412,6 +438,7 @@ tr.row:hover .star:not(.on){color:var(--text-faint);}
       <div class="rail-btn active" data-view="lib" title="Library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
       <div class="rail-btn" data-view="figs" title="Figures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.6"/><path d="M21 15l-5-5L5 21"/></svg></div>
       <div class="rail-btn" data-view="claims" title="Claims"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h13"/><path d="M19 14l2 2-2 2"/></svg></div>
+      <div class="rail-btn" data-view="graph" id="rail-graph" title="Concept graph" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8.3 7l7.4.7M7.4 8.2l3.4 7.6M16.6 10.2l-3.4 5.6"/></svg></div>
       <div class="rail-btn" data-view="ins" title="Insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div>
     </div>
 
@@ -490,6 +517,7 @@ tr.row:hover .star:not(.on){color:var(--text-faint);}
       </div>
       <div class="view-pane" id="v-figs" hidden><div class="fig-grid" id="fig-grid"></div></div>
       <div class="view-pane" id="v-claims" hidden></div>
+      <div class="view-pane" id="v-graph" hidden></div>
       <div class="view-pane" id="v-ins" hidden></div>
     </div>
   </div>
@@ -505,6 +533,7 @@ const PAPERS = __PAPERS_JSON__;
 const STORAGE = __STORAGE_JSON__;
 const ATTACH_PORT = __ATTACH_PORT__; // null unless generated with `dashboard.py --serve`
 const ATTACH_TOKEN = __ATTACH_TOKEN__; // per-run secret; server rejects writes without it
+const GRAPH = __GRAPH_JSON__; // concept graph parsed from <home>/okf, or null
 const GENERATED_AT = __GENERATED_AT__; // when dashboard.py built this snapshot
 
 // Relative figs/*.png paths only resolve when this page is opened as a local
@@ -1296,12 +1325,144 @@ function renderAll(){
   renderViews();
 }
 function renderViews(){
-  ['lib', 'figs', 'claims', 'ins'].forEach(k => { document.getElementById('v-' + k).hidden = k !== state.view; });
+  ['lib', 'figs', 'claims', 'graph', 'ins'].forEach(k => { document.getElementById('v-' + k).hidden = k !== state.view; });
   document.querySelectorAll('.rail-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === state.view));
   if(state.view === 'figs') renderFigures();
   if(state.view === 'claims') renderClaims();
+  if(state.view === 'graph') renderGraph();
   if(state.view === 'ins') renderInsights();
 }
+
+// ---- concept graph view: force layout + drag over the OKF bundle (GRAPH) ----
+const gv = { built: false, alpha: 1, raf: null, dragging: null };
+function renderGraph(){
+  const el = document.getElementById('v-graph');
+  if(!GRAPH){ el.innerHTML = '<div class="detail-empty">No concept graph yet. Run <code>/paper-rag:graph &lt;project&gt;</code> to build one.</div>'; return; }
+  if(gv.built){ gvHeat(.3); return; }
+  gv.built = true;
+  const NS = 'http://www.w3.org/2000/svg', W = 1000, H = 560;
+  const D = GRAPH, byId = Object.fromEntries(D.concepts.map(c => [c.id, c]));
+  const nPop = D.concepts.filter(c => c.facet === 'population').length;
+  const K = Math.max(.4, Math.min(1.8, Math.sqrt(8 / Math.max(D.concepts.length, 1))));
+  const rad = c => (10 + Math.sqrt(c.claims.length) * 4) * K;
+  const SP = Math.min(120 * K, (H - 170) / Math.max(Math.max(nPop, D.concepts.length - nPop) - 1, 1));
+  el.innerHTML = `<div class="gv"><div class="gv-main">
+    <div class="gv-bar"><label><input type="checkbox" id="gv-conf" checked> conflicts</label>
+      <label><input type="checkbox" id="gv-rel" checked> other edges</label>
+      <label><input type="checkbox" id="gv-co"> co-mentioned in a claim (derived)</label>
+      <span class="gv-note">${D.concepts.length} concepts · ${D.relations.length} edges · drag to move, double-click to unpin</span></div>
+    <svg class="gv-svg" id="gv-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Concept graph"></svg>
+    <div class="gv-legend"><span><i style="border-color:var(--g-pop)"></i>population</span><span><i style="border-color:var(--g-out)"></i>outcome</span>
+      <span><i style="border-color:var(--g-conf)"></i>potential_conflict / contradicts</span><span><i style="border-color:var(--text-faint);border-top-style:dashed"></i>is_a</span><span>node size = mapped claims</span></div>
+    </div><div class="gv-side" id="gv-side"><div class="detail-empty" style="padding:30px 8px;">Click a concept for its claims, or an edge for its evidence.</div></div></div>`;
+  const S = document.getElementById('gv-svg'), side = document.getElementById('gv-side');
+  const mk = (n, a = {}, parent = S, t) => { const e = document.createElementNS(NS, n); for(const k in a) e.setAttribute(k, a[k]); if(t != null) e.textContent = t; parent.appendChild(e); return e; };
+  const P = {}; let pi = 0, oi = 0;
+  D.concepts.forEach(c => { const pop = c.facet === 'population'; P[c.id] = { x: pop ? 280 : 720, y: 110 + (pop ? pi++ : oi++) * SP, vx: 0, vy: 0, pop, fixed: false, pinned: false }; });
+  const edges = D.relations.map(r => ({ kind: (r.type === 'potential_conflict' || r.type === 'contradicts') ? 'conflict' : r.type, r, a: r.subject_concept_id, b: r.object_concept_id,
+    same: byId[r.subject_concept_id].facet === byId[r.object_concept_id].facet }));
+  const co = {};
+  D.concepts.forEach(c => c.claims.forEach(id => D.concepts.forEach(o => { if(c.facet === 'population' && o.facet !== 'population' && o.claims.includes(id)){ const k = c.id + '|' + o.id; co[k] = (co[k] || 0) + 1; } })));
+  Object.keys(co).forEach(k => { const [a, b] = k.split('|'); edges.push({ kind: 'co', n: co[k], a, b }); });
+  edges.sort((x, y) => (x.kind === 'co' ? -1 : 0) - (y.kind === 'co' ? -1 : 0));
+  mk('text', { x: 280, y: 30, 'text-anchor': 'middle', class: 'gv-col' }, S, 'Population');
+  mk('text', { x: 720, y: 30, 'text-anchor': 'middle', class: 'gv-col' }, S, 'Outcome');
+  const gE = mk('g'), gN = mk('g'), nodes = {};
+  edges.forEach(e => {
+    e.el = mk('path', { class: 'gv-edge ' + e.kind }, gE);
+    if(e.kind === 'co') e.el.setAttribute('stroke-width', 1 + e.n * .6);
+    if(e.r){
+      e.el.addEventListener('click', () => showEdge(e));
+      if(e.kind === 'conflict') e.lab = mk('text', { 'text-anchor': 'middle', class: 'gv-lbl' }, gE, '⚠ ' + e.r.review_state + (e.r.stale ? ' · stale' : ''));
+    }
+  });
+  D.concepts.forEach(c => {
+    const g = mk('g', { class: 'gv-node ' + (P[c.id].pop ? 'pop' : 'out') }, gN), left = P[c.id].pop, r = rad(c);
+    mk('circle', { r }, g);
+    mk('text', { x: left ? -r - 8 : r + 8, y: -2 * K, 'text-anchor': left ? 'end' : 'start', style: `font-size:${12 * K}px` }, g, c.name.length > 34 ? c.name.slice(0, 32) + '…' : c.name);
+    mk('text', { x: left ? -r - 8 : r + 8, y: 12 * K, 'text-anchor': left ? 'end' : 'start', class: 'n', style: `font-size:${11 * K}px` }, g, c.claims.length + (c.claims.length === 1 ? ' claim' : ' claims'));
+    nodes[c.id] = g; dragNode(g, c);
+  });
+  function step(){
+    const ids = D.concepts.map(c => c.id);
+    for(let i = 0; i < ids.length; i++) for(let j = i + 1; j < ids.length; j++){
+      const a = P[ids[i]], b = P[ids[j]]; let dx = b.x - a.x, dy = b.y - a.y; const d2 = dx * dx + dy * dy || 1, d = Math.sqrt(d2);
+      let f = 9000 * K * K / d2; const min = rad(byId[ids[i]]) + rad(byId[ids[j]]) + 40 * K; if(d < min) f += (min - d) * .05;
+      dx /= d; dy /= d; a.vx -= dx * f; a.vy -= dy * f; b.vx += dx * f; b.vy += dy * f;
+    }
+    edges.forEach(e => {
+      const a = P[e.a], b = P[e.b], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      const len = (e.kind === 'co' ? 260 : e.same ? 120 : 230) * K, f = (d - len) * (e.kind === 'co' ? .004 : .02);
+      a.vx += dx / d * f; a.vy += dy / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f;
+    });
+    ids.forEach(id => {
+      const p = P[id]; p.vx += ((p.pop ? 280 : 720) - p.x) * .004; p.vy += (H / 2 - p.y) * .004;
+      if(!p.fixed && !p.pinned){ p.x += p.vx * gv.alpha; p.y += p.vy * gv.alpha; }
+      p.vx *= .6; p.vy *= .6;
+      const r = rad(byId[id]) + 4;
+      p.x = p.pop ? Math.max(r + 240, Math.min(W - r - 30, p.x)) : Math.max(r + 30, Math.min(W - r - 250, p.x));
+      p.y = Math.max(r + 30, Math.min(H - r, p.y));
+    });
+  }
+  function curve(e){ const a = P[e.a], b = P[e.b], bend = e.same ? -Math.min(80, Math.abs(a.y - b.y) * .5 + 30) : 0; return `M${a.x},${a.y} Q${(a.x + b.x) / 2 + bend},${(a.y + b.y) / 2} ${b.x},${b.y}`; }
+  function draw(){
+    D.concepts.forEach(c => nodes[c.id].setAttribute('transform', `translate(${P[c.id].x},${P[c.id].y})`));
+    edges.forEach(e => { e.el.setAttribute('d', curve(e)); if(e.lab){ const a = P[e.a], b = P[e.b]; e.lab.setAttribute('x', (a.x + b.x) / 2); e.lab.setAttribute('y', (a.y + b.y) / 2 - 10); } });
+  }
+  function tick(){ step(); draw(); gv.alpha = Math.max(gv.alpha * .985, .02); gv.raf = (gv.alpha > .021 || gv.dragging) ? requestAnimationFrame(tick) : null; }
+  window.gvHeat = (a = .6) => { gv.alpha = Math.max(gv.alpha, a); if(!gv.raf) gv.raf = requestAnimationFrame(tick); };
+  function svgPt(ev){ const q = S.createSVGPoint(); q.x = ev.clientX; q.y = ev.clientY; return q.matrixTransform(S.getScreenCTM().inverse()); }
+  function dragNode(g, c){
+    let moved = false, sx = 0, sy = 0;
+    g.addEventListener('pointerdown', ev => { g.setPointerCapture(ev.pointerId); gv.dragging = c.id; moved = false; sx = ev.clientX; sy = ev.clientY; P[c.id].fixed = true; g.classList.add('drag'); gvHeat(.5); });
+    g.addEventListener('pointermove', ev => { if(gv.dragging !== c.id) return; if(Math.hypot(ev.clientX - sx, ev.clientY - sy) > 3) moved = true; const q = svgPt(ev), p = P[c.id]; p.x = q.x; p.y = q.y; p.vx = p.vy = 0; gvHeat(.5); });
+    const end = () => { if(gv.dragging !== c.id) return; const p = P[c.id]; p.fixed = false; p.pinned = moved || p.pinned; g.classList.toggle('pinned', p.pinned); g.classList.remove('drag'); gv.dragging = null; if(!moved) showConcept(c); gvHeat(.3); };
+    g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+    g.addEventListener('dblclick', () => { P[c.id].pinned = false; g.classList.remove('pinned'); gvHeat(.8); });
+  }
+  // detail panel
+  const paperOf = k => PAPERS.find(p => p.doc_key === k);
+  const claimHtml = id => {
+    const c = D.claims[id], p = paperOf(c.doc_key);
+    return `<div class="cl-card"><div class="cl-src">${escapeHtml(id)}${c.stale ? ' · <b style="color:var(--g-conf)">STALE</b>' : ''}</div><p>${escapeHtml(c.text)}</p>
+      ${c.evidence ? `<div class="cl-quote">${escapeHtml(c.evidence)}</div>` : ''}
+      <div class="cl-meta" style="margin-top:6px;">${c.level ? `<span class="cl-pill">${escapeHtml(c.level)}</span>` : ''}<span class="cl-src">chunks: ${escapeHtml(c.chunks || 'n/a')}</span>
+      ${p ? `<a href="#" class="gv-open" data-key="${escapeHtml(c.doc_key)}" style="color:var(--accent);margin-left:auto;">${escapeHtml(clPaperLabel(p))} →</a>` : ''}</div></div>`;
+  };
+  const bindOpen = () => side.querySelectorAll('.gv-open').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); openPaper(a.dataset.key, 'claims'); }));
+  function focus(ids){
+    Object.entries(nodes).forEach(([k, n]) => { n.classList.toggle('gv-dim', !!ids && !ids.includes(k)); n.classList.toggle('sel', !!ids && ids.length === 1 && ids[0] === k); });
+    edges.forEach(e => e.el.classList.toggle('gv-dim', !!ids && !(ids.includes(e.a) && ids.includes(e.b))));
+  }
+  function showConcept(c){
+    focus([c.id]); edges.forEach(e => { if(e.r && (e.a === c.id || e.b === c.id)) e.el.classList.remove('gv-dim'); });
+    const rels = D.relations.filter(r => r.subject_concept_id === c.id || r.object_concept_id === c.id);
+    side.innerHTML = `<h2>${escapeHtml(c.name)}</h2><span class="gv-tag">${escapeHtml(c.facet)}</span><span class="gv-tag">${c.claims.length} claims</span>
+      ${c.aliases.length ? `<div class="cl-lab">Aliases</div>${c.aliases.map(escapeHtml).join(', ')}` : ''}
+      ${rels.length ? `<div class="cl-lab">Edges</div>` + rels.map(r => `<div style="margin-bottom:4px;"><span class="gv-tag ${r.type === 'potential_conflict' ? 'w' : ''}">${r.type}</span>${escapeHtml(byId[r.subject_concept_id].name)} → ${escapeHtml(byId[r.object_concept_id].name)} <span class="gv-tag">${r.review_state}</span></div>`).join('') : ''}
+      <div class="cl-lab">Claims</div>${c.claims.map(claimHtml).join('')}`;
+    bindOpen();
+  }
+  function showEdge(e){
+    const r = e.r; focus([e.a, e.b]);
+    side.innerHTML = `<h2>${escapeHtml(byId[e.a].name)} → ${escapeHtml(byId[e.b].name)}</h2>
+      <span class="gv-tag ${e.kind === 'conflict' ? 'w' : ''}">${r.type}</span><span class="gv-tag">${r.review_state}</span><span class="gv-tag">by ${escapeHtml(r.proposed_by)}</span>${r.stale ? '<span class="gv-tag w">STALE</span>' : ''}
+      ${r.rationale ? `<div class="cl-lab">Rationale</div><p style="margin:0;">${escapeHtml(r.rationale)}</p>` : ''}
+      <div class="cl-lab">Supporting claims</div>${r.claims.map(claimHtml).join('') || '<div class="cl-empty" style="padding:8px 0;text-align:left;">is_a carries no claims.</div>'}
+      ${r.type === 'potential_conflict' ? `<div class="cl-lab">Review</div><div class="gv-cmd">/paper-rag:graph &lt;project&gt; review ${r.relation_id} contradicts --rationale "..."</div>
+        <p style="color:var(--text-faint);font-size:12px;">Only a reviewed edge with a rationale becomes <b>contradicts</b>.</p>` : ''}`;
+    bindOpen();
+  }
+  S.addEventListener('click', ev => { if(ev.target === S){ focus(null); side.innerHTML = '<div class="detail-empty" style="padding:30px 8px;">Click a concept for its claims, or an edge for its evidence.</div>'; } });
+  const vis = () => {
+    const f = id => document.getElementById(id).checked;
+    edges.forEach(e => { const off = (e.kind === 'conflict' && !f('gv-conf')) || (e.kind === 'co' && !f('gv-co')) || (!['conflict', 'co'].includes(e.kind) && !f('gv-rel')); e.el.style.display = off ? 'none' : ''; if(e.lab) e.lab.style.display = off ? 'none' : ''; });
+  };
+  ['gv-conf', 'gv-rel', 'gv-co'].forEach(i => document.getElementById(i).addEventListener('change', vis)); vis();
+  for(let i = 0; i < 250; i++) step();
+  gv.alpha = .3; draw(); gvHeat(.3);
+}
+if(GRAPH) document.getElementById('rail-graph').hidden = false;
 
 function renderFigures(){
   const grid = document.getElementById('fig-grid');

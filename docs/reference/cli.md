@@ -47,6 +47,7 @@ via `typer`). For the reasoning behind each command's behavior, see the
 |---|---|---|
 | [`/paper-rag:ask`](#paper-rag-ask) | `query.py` | Retrieve claims and chunks for a question via hybrid dense + BM25 search. |
 | [`/paper-rag:extract-claims`](#paper-rag-extract-claims) | `claims.py` | Store Claude-extracted, verified claims per paper (or batch all papers missing them). |
+| [`/paper-rag:graph`](#paper-rag-graph) | `graph.py` | Map a project's claims onto concept nodes with typed edges; emit an OKF bundle. |
 | [`/paper-rag:eval-retrieval`](#paper-rag-eval-retrieval) | `eval_retrieval.py` | Compare chunk, claim and merged search on labelled questions. |
 
 ### Cite & mine
@@ -239,6 +240,14 @@ Store atomic claims for ingested papers. Claude reads the chunks, writes claims,
 | `chunks <doc_key\|pmid>` | List a paper's text and abstract chunks with ids. |
 | `add <doc_key\|pmid> [--file F] [--skip-span-check] [--skip-number-check]` | Replace the paper's claims from a JSON list. Rejects unknown `source_chunk_ids`, a missing or non-verbatim `evidence_span`, an invalid `direction`, and numbers not present in the source chunks. Optional structured fields are stored as metadata, and `source_level` (`abstract`, `fulltext` or `mixed`) is derived from the cited chunks. |
 | `status [--missing]` | List papers with claim counts; `--missing` keeps only papers with none. |
+
+## `/paper-rag:graph`
+
+Build a project's concept graph from its claims. Runs `scripts/graph.py`. See [Concept Graph](/guide/graph).
+
+**Syntax:** `/paper-rag:graph <project>` or `/paper-rag:graph <project> status|emit|neighbors <concept>|path <a> <b>|review <id> <type> --rationale "..."|reconfirm <id>`
+
+Data is written to `<project>/graph/` (JSONL) and `<project>/graph/okf/` (generated OKF v0.2 bundle). Refuses to run when the project's claims are behind the main library (`/paper-rag:project sync <name>`).
 
 ## `/paper-rag:eval-retrieval`
 

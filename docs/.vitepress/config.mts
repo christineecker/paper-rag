@@ -33,6 +33,7 @@ export default defineConfig({
             { text: 'Searching PubMed', link: '/guide/pubmed-search' },
             { text: 'Asking Questions', link: '/guide/ask' },
             { text: 'Extracting Claims', link: '/guide/extract-claims' },
+            { text: 'Concept Graph', link: '/guide/graph' },
             { text: 'Citing & Filtering', link: '/guide/cite-and-mine' },
             { text: 'Tags & Homes', link: '/guide/tags-and-homes' },
             { text: 'Dashboard', link: '/guide/dashboard' },

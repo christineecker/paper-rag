@@ -4,7 +4,8 @@ python scripts/dashboard.py [--home PATH] [--home-name NAME] [--out DIR] [--open
 
 Scans $PAPER_RAG_HOME into skills/paper-rag/templates/dashboard.html's JSON shape
 and writes a self-contained <home>/dashboard/index.html (plus copied figure
-covers under dashboard/figs/).
+covers under dashboard/figs/). If <home>/graph/okf/ holds a concept-graph bundle
+(graph.py emit), the page also gets a Graph view.
 """
 from __future__ import annotations
 
@@ -24,6 +25,7 @@ import typer
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib import config as cfg  # noqa: E402
 from lib import dashboard_data  # noqa: E402
+from lib import graph_okf  # noqa: E402
 from lib.attach import AttachError, attach_pdf  # noqa: E402
 
 app = typer.Typer(add_completion=False)
@@ -70,6 +72,9 @@ def build_dashboard(
     template = TEMPLATE_PATH.read_text()
     html = template.replace("__PAPERS_JSON__", json.dumps(papers_json, indent=2))
     html = html.replace("__STORAGE_JSON__", json.dumps(storage, indent=2))
+    # concept graph from <home>/graph/okf (projects only, after `graph.py emit`); null hides the Graph view
+    graph = graph_okf.parse_bundle(graph_okf.bundle_dir(home))
+    html = html.replace("__GRAPH_JSON__", json.dumps(graph).replace("</", "<\\/"))
     html = html.replace("__ATTACH_PORT__", json.dumps(attach_port))
     html = html.replace("__ATTACH_TOKEN__", json.dumps(attach_token))
     html = html.replace("__GENERATED_AT__", json.dumps(datetime.now().strftime("%d %b %Y %H:%M")))
@@ -84,6 +89,7 @@ def build_dashboard(
         "n_papers": len(papers_json),
         "n_fulltext": sum(1 for p in papers_json if p["has_fulltext"]),
         "n_figures": sum(1 for p in papers_json if p["n_figures"] > 0),
+        "n_concepts": len(graph["concepts"]) if graph else 0,
         "storage": storage,
     }
 

@@ -24,6 +24,16 @@ search, `Esc` close), cite in BibTeX / APA / Vancouver / RIS, and export of the
 selection or the whole filtered view as `.bib` / `.ris` / `.csv`. Reading status,
 stars, and notes are stored in the browser (localStorage), not in the library.
 
+**Concept graph.** A project dashboard whose `graph/okf/` bundle exists (from
+[`/paper-rag:graph`](/guide/graph)) gets a **Graph** view in the rail. It is read from the
+bundle alone: concepts as draggable nodes (population left, outcome right, node size = mapped
+claims, scaled to the number of concepts), conflicts in red, other edges dashed or coloured by
+type. Click a concept for its claims, evidence quotes and chunk ids, or an edge for its
+rationale and supporting claims; each claim links to its paper. Dragged nodes pin (double-click
+to unpin). The view is read-only, and it shows the review command for a `potential_conflict`
+rather than running it. `graph.py emit` rebuilds an existing dashboard, so the view stays
+current; the main library dashboard has no Graph view.
+
 **Claims.** Papers with extracted claims (see
 [Asking Questions](/guide/ask#claims)) show up in three places:
 

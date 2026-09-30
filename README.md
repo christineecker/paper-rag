@@ -86,6 +86,15 @@ with vectors copied from main (no re-embedding), its own BM25 index, and its own
 dashboard. Because it has the shape of a home, `ask`, `cite`, `mine`, and `dashboard`
 work on it unchanged. Membership changes auto-sync; `sync` repairs.
 
+## Concept graph
+
+`/paper-rag:graph <project>` maps a project's claims onto concept nodes, adds typed edges
+(`supports`, `potential_conflict`, `contradicts`, `extends`, `replicates`, `is_a`), and emits
+an OKF v0.2 bundle to `<project>/graph/okf/`. Graph data lives in `<project>/graph/` and points at
+claims in the main library by id and content hash, so re-extracted claims flag affected
+mappings and edges as stale instead of silently changing them. `contradicts` only exists after
+a human-confirmed review with a rationale. See `PLAN-graph.md` and the docs guide.
+
 ## Embedding models
 
 Default: `BAAI/bge-small-en-v1.5` (local `sentence-transformers`, no API key). Any
@@ -125,6 +134,9 @@ Tests mock all network calls (NCBI fetches) and the embedding function, so the s
 without external network access or downloading embedding models.
 
 ## Changelog
+
+### 2026-09-30
+- Add `/paper-rag:graph`: per-project concept graph, staleness tracking, OKF bundle
 
 ### 2026-09-29
 - Add tag command; fix `--where` being ignored by lexical leg of hybrid search
